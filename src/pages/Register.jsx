@@ -1,50 +1,19 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { GoogleLogin } from '@react-oauth/google'
 import apiClient from '../api/client'
 import useAuthStore from '../store/authStore'
 
-function Login() {
+function Register() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
-  const formWrapperRef = useRef(null)
 
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [buttonWidth, setButtonWidth] = useState(null)
-
-  useEffect(() => {
-    if (formWrapperRef.current) {
-      setButtonWidth(formWrapperRef.current.offsetWidth)
-    }
-  }, [])
-
-  const handleAuthSuccess = (data) => {
-    localStorage.setItem('access_token', data.tokens.access)
-    localStorage.setItem('refresh_token', data.tokens.refresh)
-    setUser(data.user)
-    navigate('/dashboard')
-  }
-
-  const handleAuthError = (err) => {
-    const data = err.response?.data
-
-    if (data?.status === 'banned') {
-      setError(data.reason ? `Account banned: ${data.reason}` : 'Your account has been banned.')
-    } else if (data?.status === 'email_not_verified') {
-      setError('Please verify your email before logging in.')
-    } else if (data?.error) {
-      setError(data.error)
-    } else if (data?.email) {
-      setError(data.email[0])
-    } else if (data?.password) {
-      setError(data.password[0])
-    } else {
-      setError('Something went wrong. Please try again.')
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -52,33 +21,34 @@ function Login() {
     setIsLoading(true)
 
     try {
-      const response = await apiClient.post('/api/auth/login/', { email, password })
-      const data = response.data
-
-      if (data.status === '2fa_required') {
-        navigate('/verify-2fa', { state: { uid: data.uid } })
-        return
-      }
-
-      handleAuthSuccess(data)
-    } catch (err) {
-      handleAuthError(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setError('')
-    setIsLoading(true)
-
-    try {
-      const response = await apiClient.post('/api/auth/google-login/', {
-        id_token: credentialResponse.credential,
+      const response = await apiClient.post('/api/auth/register/', {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        password,
+        role: 'TENANT',
+        accept_terms: acceptTerms,
       })
-      handleAuthSuccess(response.data)
+
+      const data = response.data
+      localStorage.setItem('access_token', data.tokens.access)
+      localStorage.setItem('refresh_token', data.tokens.refresh)
+      setUser(data.user)
+      navigate('/verify-email')
     } catch (err) {
-      handleAuthError(err)
+      const data = err.response?.data
+
+      if (data?.email) {
+        setError(data.email[0])
+      } else if (data?.password) {
+        setError(data.password[0])
+      } else if (data?.accept_terms) {
+        setError(data.accept_terms[0])
+      } else if (data?.error) {
+        setError(data.error)
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -131,7 +101,7 @@ function Login() {
 
       {/* Form panel */}
       <div className="flex items-center justify-center px-6 py-16">
-        <div ref={formWrapperRef} className="w-full max-w-sm">
+        <div className="w-full max-w-sm">
 
           <div className="lg:hidden mb-10">
             <span
@@ -146,13 +116,46 @@ function Login() {
             className="text-2xl text-charcoal mb-2"
             style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
           >
-            Welcome back
+            Create your account
           </h1>
           <p className="text-charcoal/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Log in to your NEST account.
+            Sign up as a tenant to get started.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-charcoal mb-1.5">
+                  First name
+                </label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  autoComplete="given-name"
+                  className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                  placeholder="Jane"
+                />
+              </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-charcoal mb-1.5">
+                  Last name
+                </label>
+                <input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  autoComplete="family-name"
+                  className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                  placeholder="Wanjiru"
+                />
+              </div>
+            </div>
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-1.5">
                 Email
@@ -179,11 +182,27 @@ function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
+                minLength={8}
+                autoComplete="new-password"
                 className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
-                placeholder="••••••••"
+                placeholder="At least 8 characters"
               />
             </div>
+
+            <label className="flex items-start gap-2.5 text-sm text-charcoal/70 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 accent-sienna"
+              />
+              <span>
+                I agree to the{' '}
+                <Link to="/terms" className="text-sienna font-medium hover:text-clay">
+                  Terms and Conditions
+                </Link>
+              </span>
+            </label>
 
             {error && (
               <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">
@@ -196,32 +215,14 @@ function Login() {
               disabled={isLoading}
               className="w-full py-2.5 rounded-lg bg-sienna text-sand font-medium hover:bg-clay transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Logging in...' : 'Log in'}
+              {isLoading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-clay/20" />
-            <span className="text-xs text-charcoal/40 uppercase tracking-wide" style={{ fontFamily: "'Inter', sans-serif" }}>
-              or
-            </span>
-            <div className="flex-1 h-px bg-clay/20" />
-          </div>
-
-          {buttonWidth && (
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Google sign-in failed. Please try again.')}
-              width={String(buttonWidth)}
-              theme="outline"
-              shape="rectangular"
-            />
-          )}
-
           <p className="mt-8 text-sm text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Don't have an account?{' '}
-            <Link to="/register" className="text-sienna font-medium hover:text-clay">
-              Sign up
+            Already have an account?{' '}
+            <Link to="/login" className="text-sienna font-medium hover:text-clay">
+              Log in
             </Link>
           </p>
         </div>
@@ -230,4 +231,4 @@ function Login() {
   )
 }
 
-export default Login
+export default Register
