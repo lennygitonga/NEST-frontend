@@ -1,19 +1,59 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { GoogleLogin } from '@react-oauth/google'
 import apiClient from '../api/client'
 import useAuthStore from '../store/authStore'
+
+function EyeIcon({ visible }) {
+  return visible ? (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 4.22-5.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  )
+}
 
 function Register() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
+  const formWrapperRef = useRef(null)
 
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [buttonWidth, setButtonWidth] = useState(null)
+
+  useEffect(() => {
+    if (formWrapperRef.current) {
+      setButtonWidth(formWrapperRef.current.offsetWidth)
+    }
+  }, [])
+
+  const handleAuthError = (err) => {
+    const data = err.response?.data
+
+    if (data?.email) {
+      setError(data.email[0])
+    } else if (data?.password) {
+      setError(data.password[0])
+    } else if (data?.accept_terms) {
+      setError(data.accept_terms[0])
+    } else if (data?.error) {
+      setError(data.error)
+    } else {
+      setError('Something went wrong. Please try again.')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -36,19 +76,27 @@ function Register() {
       setUser(data.user)
       navigate('/verify-email')
     } catch (err) {
-      const data = err.response?.data
+      handleAuthError(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-      if (data?.email) {
-        setError(data.email[0])
-      } else if (data?.password) {
-        setError(data.password[0])
-      } else if (data?.accept_terms) {
-        setError(data.accept_terms[0])
-      } else if (data?.error) {
-        setError(data.error)
-      } else {
-        setError('Something went wrong. Please try again.')
-      }
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const response = await apiClient.post('/api/auth/google-login/', {
+        id_token: credentialResponse.credential,
+      })
+      const data = response.data
+      localStorage.setItem('access_token', data.tokens.access)
+      localStorage.setItem('refresh_token', data.tokens.refresh)
+      setUser(data.user)
+      navigate('/dashboard')
+    } catch (err) {
+      handleAuthError(err)
     } finally {
       setIsLoading(false)
     }
@@ -101,7 +149,7 @@ function Register() {
 
       {/* Form panel */}
       <div className="flex items-center justify-center px-6 py-16">
-        <div className="w-full max-w-sm">
+        <div ref={formWrapperRef} className="w-full max-w-sm">
 
           <div className="lg:hidden mb-10">
             <span
@@ -176,17 +224,28 @@ function Register() {
               <label htmlFor="password" className="block text-sm font-medium text-charcoal mb-1.5">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
-                placeholder="At least 8 characters"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  className="w-full px-4 py-2.5 pr-11 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                  placeholder="At least 8 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal/70 transition"
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  <EyeIcon visible={showPassword} />
+                </button>
+              </div>
             </div>
 
             <label className="flex items-start gap-2.5 text-sm text-charcoal/70 cursor-pointer">
@@ -218,6 +277,24 @@ function Register() {
               {isLoading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-clay/20" />
+            <span className="text-xs text-charcoal/40 uppercase tracking-wide" style={{ fontFamily: "'Inter', sans-serif" }}>
+              or
+            </span>
+            <div className="flex-1 h-px bg-clay/20" />
+          </div>
+
+          {buttonWidth && (
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Google sign-in failed. Please try again.')}
+              width={String(buttonWidth)}
+              theme="outline"
+              shape="rectangular"
+            />
+          )}
 
           <p className="mt-8 text-sm text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
             Already have an account?{' '}
