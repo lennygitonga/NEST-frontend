@@ -14,6 +14,7 @@ import Profile from './pages/Profile'
 import ProtectedRoute from './components/ProtectedRoute'
 import TenantLayout from './layouts/TenantLayout'
 import PropertyDetail from './pages/PropertyDetail'
+import TicketDetail from './pages/TicketDetail'
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/tickets/:id" element={<TicketDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
