@@ -1,10 +1,15 @@
 import { create } from 'zustand'
 
-const useAuthStore = create((set) => ({
-  user: null,
-  isAuthenticated: false,
+const storedUser = localStorage.getItem('nest_user')
 
-  setUser: (user) => set({ user, isAuthenticated: true }),
+const useAuthStore = create((set) => ({
+  user: storedUser ? JSON.parse(storedUser) : null,
+  isAuthenticated: !!localStorage.getItem('access_token'),
+
+  setUser: (user) => {
+    localStorage.setItem('nest_user', JSON.stringify(user))
+    set({ user, isAuthenticated: true })
+  },
 
   logout: () => {
     localStorage.removeItem('access_token')

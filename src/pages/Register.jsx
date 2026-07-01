@@ -126,6 +126,7 @@ function Register() {
       const data = response.data
       localStorage.setItem('access_token', data.tokens.access)
       localStorage.setItem('refresh_token', data.tokens.refresh)
+      localStorage.setItem('nest_user', JSON.stringify(data.user))
       setUser(data.user)
       navigate('/dashboard')
     } catch (err) {
