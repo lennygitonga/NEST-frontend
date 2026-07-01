@@ -1,12 +1,462 @@
-function Profile() {
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import apiClient from '../api/client'
+import useAuthStore from '../store/authStore'
+
+function SectionCard({ title, children }) {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
-      <h1 className="text-3xl text-charcoal" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-        Profile
+    <div className="bg-white border border-clay/15 rounded-xl p-6 mb-6">
+      <h2 className="text-lg text-charcoal mb-4" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
+        {title}
+      </h2>
+      {children}
+    </div>
+  )
+}
+
+function Profile() {
+  const navigate = useNavigate()
+  const setUser = useAuthStore((state) => state.setUser)
+  const logout = useAuthStore((state) => state.logout)
+
+  const [profile, setProfile] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Personal info
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [infoStatus, setInfoStatus] = useState('idle')
+  const [infoError, setInfoError] = useState('')
+
+  // Change password
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordStatus, setPasswordStatus] = useState('idle')
+  const [passwordError, setPasswordError] = useState('')
+
+  // Change email
+  const [newEmail, setNewEmail] = useState('')
+  const [emailPassword, setEmailPassword] = useState('')
+  const [emailStatus, setEmailStatus] = useState('idle')
+  const [emailError, setEmailError] = useState('')
+
+  // 2FA
+  const [twoFaSetup, setTwoFaSetup] = useState(null)
+  const [twoFaCode, setTwoFaCode] = useState('')
+  const [twoFaStatus, setTwoFaStatus] = useState('idle')
+  const [twoFaError, setTwoFaError] = useState('')
+  const [disableCode, setDisableCode] = useState('')
+
+  // Deletion
+  const [deletionStatus, setDeletionStatus] = useState(null)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteStatus, setDeleteStatus] = useState('idle')
+  const [deleteError, setDeleteError] = useState('')
+
+  const loadProfile = () => {
+    apiClient.get('/api/auth/profile/')
+      .then((response) => {
+        setProfile(response.data)
+        setFirstName(response.data.first_name || '')
+        setLastName(response.data.last_name || '')
+        setPhone(response.data.profile?.phone_number || '')
+      })
+      .finally(() => setIsLoading(false))
+
+    apiClient.get('/api/auth/account/deletion-status/')
+      .then((response) => setDeletionStatus(response.data))
+      .catch(() => {})
+  }
+
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const handleInfoSubmit = async (e) => {
+    e.preventDefault()
+    setInfoStatus('submitting')
+    setInfoError('')
+
+    try {
+      const response = await apiClient.patch('/api/auth/profile/update/', {
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+      })
+      setUser(response.data.user)
+      setInfoStatus('success')
+      setTimeout(() => setInfoStatus('idle'), 2000)
+    } catch (err) {
+      setInfoError(err.response?.data?.error || 'Could not update your details.')
+      setInfoStatus('error')
+    }
+  }
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault()
+    setPasswordStatus('submitting')
+    setPasswordError('')
+
+    try {
+      await apiClient.post('/api/auth/change-password/', {
+        old_password: oldPassword,
+        new_password: newPassword,
+      })
+      setOldPassword('')
+      setNewPassword('')
+      setPasswordStatus('success')
+      setTimeout(() => setPasswordStatus('idle'), 2000)
+    } catch (err) {
+      const data = err.response?.data
+      setPasswordError(data?.error || data?.old_password?.[0] || data?.new_password?.[0] || 'Could not change your password.')
+      setPasswordStatus('error')
+    }
+  }
+
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault()
+    setEmailStatus('submitting')
+    setEmailError('')
+
+    try {
+      await apiClient.post('/api/auth/change-email/', {
+        new_email: newEmail,
+        password: emailPassword,
+      })
+      setEmailPassword('')
+      setEmailStatus('success')
+    } catch (err) {
+      const data = err.response?.data
+      setEmailError(data?.error || 'Could not change your email.')
+      setEmailStatus('error')
+    }
+  }
+
+  const handle2faSetup = async () => {
+    setTwoFaStatus('setting-up')
+    setTwoFaError('')
+
+    try {
+      const response = await apiClient.post('/api/auth/2fa/setup/')
+      setTwoFaSetup(response.data)
+      setTwoFaStatus('idle')
+    } catch (err) {
+      setTwoFaError(err.response?.data?.error || 'Could not start 2FA setup.')
+      setTwoFaStatus('idle')
+    }
+  }
+
+  const handle2faVerify = async (e) => {
+    e.preventDefault()
+    setTwoFaStatus('verifying')
+    setTwoFaError('')
+
+    try {
+      await apiClient.post('/api/auth/2fa/verify-setup/', { code: twoFaCode })
+      setTwoFaSetup(null)
+      setTwoFaCode('')
+      loadProfile()
+    } catch (err) {
+      setTwoFaError(err.response?.data?.error || 'Invalid code.')
+    } finally {
+      setTwoFaStatus('idle')
+    }
+  }
+
+  const handle2faDisable = async (e) => {
+    e.preventDefault()
+    setTwoFaStatus('disabling')
+    setTwoFaError('')
+
+    try {
+      await apiClient.post('/api/auth/2fa/disable/', { code: disableCode })
+      setDisableCode('')
+      loadProfile()
+    } catch (err) {
+      setTwoFaError(err.response?.data?.error || 'Invalid code.')
+    } finally {
+      setTwoFaStatus('idle')
+    }
+  }
+
+  const handleDeleteRequest = async (e) => {
+    e.preventDefault()
+    setDeleteStatus('submitting')
+    setDeleteError('')
+
+    try {
+      const response = await apiClient.post('/api/auth/account/delete-request/', {
+        password: deletePassword,
+      })
+      setDeletePassword('')
+      setDeletionStatus({ is_pending_deletion: true, deletion_date: response.data.deletion_date })
+      setDeleteStatus('idle')
+    } catch (err) {
+      setDeleteError(err.response?.data?.error || 'Could not process this request.')
+      setDeleteStatus('error')
+    }
+  }
+
+  const handleCancelDeletion = async () => {
+    try {
+      await apiClient.post('/api/auth/account/delete-cancel/')
+      setDeletionStatus({ is_pending_deletion: false })
+    } catch {
+      // ignore
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto px-6 py-12">
+        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-12" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <h1 className="text-3xl text-charcoal mb-2" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
+        Profile and settings
       </h1>
-      <p className="text-charcoal/60 mt-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-        Profile management coming soon.
-      </p>
+      <p className="text-charcoal/60 mb-8">Manage your account details and security.</p>
+
+      {deletionStatus?.is_pending_deletion && (
+        <div className="bg-brick/10 border border-brick/20 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+          <p className="text-sm text-brick">
+            Your account is scheduled for deletion on {new Date(deletionStatus.deletion_date).toLocaleDateString()}.
+          </p>
+          <button
+            onClick={handleCancelDeletion}
+            className="shrink-0 text-sm font-medium text-brick underline hover:no-underline"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      <SectionCard title="Personal information">
+        <form onSubmit={handleInfoSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">First name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Last name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1.5">Phone number</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+254 7XX XXX XXX"
+              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+            />
+          </div>
+
+          {infoError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{infoError}</div>}
+          {infoStatus === 'success' && <div className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">Saved.</div>}
+
+          <button
+            type="submit"
+            disabled={infoStatus === 'submitting'}
+            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+          >
+            {infoStatus === 'submitting' ? 'Saving...' : 'Save changes'}
+          </button>
+        </form>
+      </SectionCard>
+
+      <SectionCard title="Email address">
+        <p className="text-sm text-charcoal/60 mb-4">Current email: {profile?.email}</p>
+        {emailStatus === 'success' ? (
+          <p className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">
+            Email updated. Please check your new inbox to verify it.
+          </p>
+        ) : (
+          <form onSubmit={handleEmailSubmit} className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">New email</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Current password</label>
+              <input
+                type="password"
+                value={emailPassword}
+                onChange={(e) => setEmailPassword(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+              />
+            </div>
+            {emailError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{emailError}</div>}
+            <button
+              type="submit"
+              disabled={emailStatus === 'submitting'}
+              className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+            >
+              {emailStatus === 'submitting' ? 'Updating...' : 'Update email'}
+            </button>
+          </form>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Password">
+        <form onSubmit={handlePasswordSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1.5">Current password</label>
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              required
+              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-charcoal mb-1.5">New password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+            />
+          </div>
+          {passwordError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{passwordError}</div>}
+          {passwordStatus === 'success' && <div className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">Password changed.</div>}
+          <button
+            type="submit"
+            disabled={passwordStatus === 'submitting'}
+            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+          >
+            {passwordStatus === 'submitting' ? 'Changing...' : 'Change password'}
+          </button>
+        </form>
+      </SectionCard>
+
+      <SectionCard title="Two-factor authentication">
+        {profile?.profile?.is_2fa_enabled ? (
+          <form onSubmit={handle2faDisable} className="space-y-3">
+            <p className="text-sm text-olive">2FA is currently enabled on your account.</p>
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Enter a code to disable</label>
+              <input
+                type="text"
+                value={disableCode}
+                onChange={(e) => setDisableCode(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+                placeholder="6-digit code"
+              />
+            </div>
+            {twoFaError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{twoFaError}</div>}
+            <button
+              type="submit"
+              disabled={twoFaStatus === 'disabling'}
+              className="bg-brick text-sand px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-60 text-sm"
+            >
+              {twoFaStatus === 'disabling' ? 'Disabling...' : 'Disable 2FA'}
+            </button>
+          </form>
+        ) : twoFaSetup ? (
+          <form onSubmit={handle2faVerify} className="space-y-3">
+            <p className="text-sm text-charcoal/70">
+              Add this secret key to Google Authenticator (or any TOTP app), then enter the 6-digit code it generates.
+            </p>
+            <div className="bg-sand rounded-lg px-4 py-3 font-mono text-sm text-charcoal break-all">
+              {twoFaSetup.secret}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Verification code</label>
+              <input
+                type="text"
+                value={twoFaCode}
+                onChange={(e) => setTwoFaCode(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+                placeholder="6-digit code"
+              />
+            </div>
+            {twoFaError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{twoFaError}</div>}
+            <button
+              type="submit"
+              disabled={twoFaStatus === 'verifying'}
+              className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+            >
+              {twoFaStatus === 'verifying' ? 'Verifying...' : 'Verify and enable'}
+            </button>
+          </form>
+        ) : (
+          <div>
+            <p className="text-sm text-charcoal/60 mb-4">
+              2FA adds an extra layer of security to your account using an authenticator app.
+            </p>
+            {twoFaError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2 mb-3">{twoFaError}</div>}
+            <button
+              onClick={handle2faSetup}
+              disabled={twoFaStatus === 'setting-up'}
+              className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+            >
+              {twoFaStatus === 'setting-up' ? 'Starting...' : 'Set up 2FA'}
+            </button>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Delete account">
+        {deletionStatus?.is_pending_deletion ? (
+          <p className="text-sm text-charcoal/60">
+            Your account deletion is already scheduled. You can cancel it using the banner above.
+          </p>
+        ) : (
+          <form onSubmit={handleDeleteRequest} className="space-y-3">
+            <p className="text-sm text-charcoal/60">
+              Deleting your account starts a 7-day grace period during which you can cancel by logging in again.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Confirm with your password</label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
+              />
+            </div>
+            {deleteError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{deleteError}</div>}
+            <button
+              type="submit"
+              disabled={deleteStatus === 'submitting'}
+              className="bg-brick text-sand px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-60 text-sm"
+            >
+              {deleteStatus === 'submitting' ? 'Processing...' : 'Request account deletion'}
+            </button>
+          </form>
+        )}
+      </SectionCard>
     </div>
   )
 }
