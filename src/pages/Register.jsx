@@ -129,7 +129,16 @@ function Register() {
       localStorage.setItem('refresh_token', data.tokens.refresh)
       localStorage.setItem('nest_user', JSON.stringify(data.user))
       setUser(data.user)
-      navigate('/dashboard')
+      const role = data.user?.profile?.role
+      if (role === 'AGENCY') {
+        navigate('/agency/dashboard')
+      } else if (role === 'LANDLORD') {
+        navigate('/landlord/dashboard')
+      } else if (role === 'NEST_ADMIN') {
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       handleAuthError(err)
     } finally {
@@ -212,11 +221,10 @@ function Register() {
                 key={r.value}
                 type="button"
                 onClick={() => setRole(r.value)}
-                className={`p-3 rounded-xl border text-left transition ${
-                  role === r.value
+                className={`p-3 rounded-xl border text-left transition ${role === r.value
                     ? 'border-sienna bg-sienna/5'
                     : 'border-clay/20 hover:border-clay/40'
-                }`}
+                  }`}
               >
                 <p
                   className={`text-sm font-medium ${role === r.value ? 'text-sienna' : 'text-charcoal'}`}
@@ -388,22 +396,26 @@ function Register() {
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-clay/20" />
-            <span className="text-xs text-charcoal/40 uppercase tracking-wide" style={{ fontFamily: "'Inter', sans-serif" }}>
-              or
-            </span>
-            <div className="flex-1 h-px bg-clay/20" />
-          </div>
+          {role !== 'AGENCY' && (
+            <>
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-clay/20" />
+                <span className="text-xs text-charcoal/40 uppercase tracking-wide" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  or
+                </span>
+                <div className="flex-1 h-px bg-clay/20" />
+              </div>
 
-          {buttonWidth && (
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Google sign-in failed. Please try again.')}
-              width={String(buttonWidth)}
-              theme="outline"
-              shape="rectangular"
-            />
+              {buttonWidth && (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google sign-in failed. Please try again.')}
+                  width={String(buttonWidth)}
+                  theme="outline"
+                  shape="rectangular"
+                />
+              )}
+            </>
           )}
 
           <p className="mt-8 text-sm text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>

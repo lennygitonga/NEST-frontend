@@ -36,24 +36,6 @@ function Login() {
     }
   }, [])
 
-  const handleAuthSuccess = (data) => {
-  localStorage.setItem('access_token', data.tokens.access)
-  localStorage.setItem('refresh_token', data.tokens.refresh)
-  localStorage.setItem('nest_user', JSON.stringify(data.user))
-  setUser(data.user)
-
-  const role = data.user?.profile?.role
-  if (role === 'AGENCY') {
-    navigate('/agency/dashboard')
-  } else if (role === 'LANDLORD') {
-    navigate('/landlord/dashboard')
-  } else if (role === 'NEST_ADMIN') {
-    navigate('/admin/dashboard')
-  } else {
-    navigate('/dashboard')
-  }
-}
-
   const handleAuthError = (err) => {
     const data = err.response?.data
 
@@ -69,6 +51,24 @@ function Login() {
       setError(data.password[0])
     } else {
       setError('Something went wrong. Please try again.')
+    }
+  }
+
+  const handleAuthSuccess = (data) => {
+    localStorage.setItem('access_token', data.tokens.access)
+    localStorage.setItem('refresh_token', data.tokens.refresh)
+    localStorage.setItem('nest_user', JSON.stringify(data.user))
+    setUser(data.user)
+
+    const role = data.user?.profile?.role
+    if (role === 'AGENCY') {
+      navigate('/agency/dashboard')
+    } else if (role === 'LANDLORD') {
+      navigate('/landlord/dashboard')
+    } else if (role === 'NEST_ADMIN') {
+      navigate('/admin/dashboard')
+    } else {
+      navigate('/dashboard')
     }
   }
 
@@ -102,7 +102,22 @@ function Login() {
       const response = await apiClient.post('/api/auth/google-login/', {
         id_token: credentialResponse.credential,
       })
-      handleAuthSuccess(response.data)
+      const data = response.data
+      localStorage.setItem('access_token', data.tokens.access)
+      localStorage.setItem('refresh_token', data.tokens.refresh)
+      localStorage.setItem('nest_user', JSON.stringify(data.user))
+      setUser(data.user)
+
+      const role = data.user?.profile?.role
+      if (role === 'AGENCY') {
+        navigate('/agency/dashboard')
+      } else if (role === 'LANDLORD') {
+        navigate('/landlord/dashboard')
+      } else if (role === 'NEST_ADMIN') {
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       handleAuthError(err)
     } finally {
