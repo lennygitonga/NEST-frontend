@@ -37,12 +37,22 @@ function Login() {
   }, [])
 
   const handleAuthSuccess = (data) => {
-    localStorage.setItem('access_token', data.tokens.access)
-    localStorage.setItem('refresh_token', data.tokens.refresh)
-    localStorage.setItem('nest_user', JSON.stringify(data.user))
-    setUser(data.user)
+  localStorage.setItem('access_token', data.tokens.access)
+  localStorage.setItem('refresh_token', data.tokens.refresh)
+  localStorage.setItem('nest_user', JSON.stringify(data.user))
+  setUser(data.user)
+
+  const role = data.user?.profile?.role
+  if (role === 'AGENCY') {
+    navigate('/agency/dashboard')
+  } else if (role === 'LANDLORD') {
+    navigate('/landlord/dashboard')
+  } else if (role === 'NEST_ADMIN') {
+    navigate('/admin/dashboard')
+  } else {
     navigate('/dashboard')
   }
+}
 
   const handleAuthError = (err) => {
     const data = err.response?.data

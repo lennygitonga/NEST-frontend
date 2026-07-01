@@ -24,7 +24,16 @@ function VerifyEmail() {
         email: user?.email,
         code,
       })
-      navigate('/dashboard')
+      const role = user?.profile?.role
+      if (role === 'AGENCY') {
+        navigate('/agency/dashboard')
+      } else if (role === 'LANDLORD') {
+        navigate('/landlord/dashboard')
+      } else if (role === 'NEST_ADMIN') {
+        navigate('/admin/dashboard')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       const data = err.response?.data
       setError(data?.error || 'Something went wrong. Please try again.')
