@@ -18,17 +18,32 @@ function EyeIcon({ visible }) {
   )
 }
 
+const ROLES = [
+  { value: 'TENANT', label: 'Tenant', description: 'Looking for a property to rent' },
+  { value: 'LANDLORD', label: 'Landlord', description: 'Own properties managed by an agency' },
+  { value: 'AGENCY', label: 'Agency', description: 'Manage properties on behalf of landlords' },
+]
+
 function Register() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const formWrapperRef = useRef(null)
 
+  const [role, setRole] = useState('TENANT')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
+
+  // Agency-specific fields
+  const [agencyName, setAgencyName] = useState('')
+  const [regNumber, setRegNumber] = useState('')
+  const [agencyAddress, setAgencyAddress] = useState('')
+  const [agencyPhone, setAgencyPhone] = useState('')
+  const [agencyWebsite, setAgencyWebsite] = useState('')
+
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [buttonWidth, setButtonWidth] = useState(null)
@@ -41,13 +56,22 @@ function Register() {
 
   const handleAuthError = (err) => {
     const data = err.response?.data
-
     if (data?.email) {
       setError(data.email[0])
     } else if (data?.password) {
       setError(data.password[0])
     } else if (data?.accept_terms) {
       setError(data.accept_terms[0])
+    } else if (data?.agency_name) {
+      setError(data.agency_name[0])
+    } else if (data?.registration_number) {
+      setError(data.registration_number[0])
+    } else if (data?.agency_address) {
+      setError(data.agency_address[0])
+    } else if (data?.agency_phone) {
+      setError(data.agency_phone[0])
+    } else if (data?.non_field_errors) {
+      setError(data.non_field_errors[0])
     } else if (data?.error) {
       setError(data.error)
     } else {
@@ -60,16 +84,25 @@ function Register() {
     setError('')
     setIsLoading(true)
 
-    try {
-      const response = await apiClient.post('/api/auth/register/', {
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        password,
-        role: 'TENANT',
-        accept_terms: acceptTerms,
-      })
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
+      role,
+      accept_terms: acceptTerms,
+    }
 
+    if (role === 'AGENCY') {
+      payload.agency_name = agencyName
+      payload.registration_number = regNumber
+      payload.agency_address = agencyAddress
+      payload.agency_phone = agencyPhone
+      if (agencyWebsite) payload.agency_website = agencyWebsite
+    }
+
+    try {
+      const response = await apiClient.post('/api/auth/register/', payload)
       const data = response.data
       localStorage.setItem('access_token', data.tokens.access)
       localStorage.setItem('refresh_token', data.tokens.refresh)
@@ -166,18 +199,41 @@ function Register() {
           >
             Create your account
           </h1>
-          <p className="text-charcoal/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Sign up as a tenant to get started.
+          <p className="text-charcoal/60 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Choose your role to get started.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5" style={{ fontFamily: "'Inter', sans-serif" }}>
+          {/* Role picker */}
+          <div className="grid grid-cols-3 gap-2 mb-6">
+            {ROLES.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setRole(r.value)}
+                className={`p-3 rounded-xl border text-left transition ${
+                  role === r.value
+                    ? 'border-sienna bg-sienna/5'
+                    : 'border-clay/20 hover:border-clay/40'
+                }`}
+              >
+                <p
+                  className={`text-sm font-medium ${role === r.value ? 'text-sienna' : 'text-charcoal'}`}
+                  style={{ fontFamily: "'Inter', sans-serif" }}
+                >
+                  {r.label}
+                </p>
+                <p className="text-charcoal/40 text-xs mt-0.5 leading-snug" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  {r.description}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" style={{ fontFamily: "'Inter', sans-serif" }}>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-charcoal mb-1.5">
-                  First name
-                </label>
+                <label className="block text-sm font-medium text-charcoal mb-1.5">First name</label>
                 <input
-                  id="firstName"
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -188,11 +244,8 @@ function Register() {
                 />
               </div>
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-charcoal mb-1.5">
-                  Last name
-                </label>
+                <label className="block text-sm font-medium text-charcoal mb-1.5">Last name</label>
                 <input
-                  id="lastName"
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -205,11 +258,8 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-charcoal mb-1.5">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Email</label>
               <input
-                id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -221,12 +271,9 @@ function Register() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-charcoal mb-1.5">
-                Password
-              </label>
+              <label className="block text-sm font-medium text-charcoal mb-1.5">Password</label>
               <div className="relative">
                 <input
-                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -247,6 +294,67 @@ function Register() {
                 </button>
               </div>
             </div>
+
+            {/* Agency-specific fields */}
+            {role === 'AGENCY' && (
+              <div className="space-y-3 pt-2 border-t border-clay/15">
+                <p className="text-xs text-charcoal/50 uppercase tracking-wide pt-1">Agency details</p>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-1.5">Agency name</label>
+                  <input
+                    type="text"
+                    value={agencyName}
+                    onChange={(e) => setAgencyName(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                    placeholder="Acme Properties Ltd"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-1.5">Registration number</label>
+                  <input
+                    type="text"
+                    value={regNumber}
+                    onChange={(e) => setRegNumber(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                    placeholder="REG-12345"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-1.5">Address</label>
+                  <input
+                    type="text"
+                    value={agencyAddress}
+                    onChange={(e) => setAgencyAddress(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                    placeholder="123 Kimathi Street, Nairobi"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-1.5">Phone</label>
+                  <input
+                    type="text"
+                    value={agencyPhone}
+                    onChange={(e) => setAgencyPhone(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                    placeholder="+254 7XX XXX XXX"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal mb-1.5">Website (optional)</label>
+                  <input
+                    type="url"
+                    value={agencyWebsite}
+                    onChange={(e) => setAgencyWebsite(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition"
+                    placeholder="https://acmeproperties.co.ke"
+                  />
+                </div>
+              </div>
+            )}
 
             <label className="flex items-start gap-2.5 text-sm text-charcoal/70 cursor-pointer">
               <input
