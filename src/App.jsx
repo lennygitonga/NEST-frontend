@@ -15,6 +15,16 @@ import ProtectedRoute from './components/ProtectedRoute'
 import TenantLayout from './layouts/TenantLayout'
 import PropertyDetail from './pages/PropertyDetail'
 import TicketDetail from './pages/TicketDetail'
+import AgencyLayout from './layouts/AgencyLayout'
+import AgencyProtectedRoute from './components/AgencyProtectedRoute'
+import AgencyDashboard from './pages/agency/AgencyDashboard'
+import AgencyProperties from './pages/agency/AgencyProperties'
+import AgencyApplications from './pages/agency/AgencyApplications'
+import AgencyLeases from './pages/agency/AgencyLeases'
+import AgencyTickets from './pages/agency/AgencyTickets'
+import AgencyPayments from './pages/agency/AgencyPayments'
+import AgencyTenants from './pages/agency/AgencyTenants'
+import AgencyLandlords from './pages/agency/AgencyLandlords'
 
 function App() {
   return (
@@ -41,6 +51,22 @@ function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />
+        </Route>
+        <Route
+          element={
+            <AgencyProtectedRoute>
+              <AgencyLayout />
+            </AgencyProtectedRoute>
+          }
+        >
+          <Route path="/agency/dashboard" element={<AgencyDashboard />} />
+          <Route path="/agency/properties" element={<AgencyProperties />} />
+          <Route path="/agency/applications" element={<AgencyApplications />} />
+          <Route path="/agency/leases" element={<AgencyLeases />} />
+          <Route path="/agency/tickets" element={<AgencyTickets />} />
+          <Route path="/agency/payments" element={<AgencyPayments />} />
+          <Route path="/agency/tenants" element={<AgencyTenants />} />
+          <Route path="/agency/landlords" element={<AgencyLandlords />} />
         </Route>
       </Routes>
     </BrowserRouter>
