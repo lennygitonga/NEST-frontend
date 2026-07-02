@@ -14,7 +14,6 @@ function AgencyProperties() {
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
 
-  // Form state
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [propertyType, setPropertyType] = useState('RESIDENTIAL')
@@ -244,7 +243,9 @@ function AgencyProperties() {
                   <option value="">No landlords yet</option>
                 )}
                 {landlords.map((l) => (
-                  <option key={l.id} value={l.landlord}>Landlord #{l.landlord}</option>
+                  <option key={l.id} value={l.landlord}>
+                    {l.landlord_name} ({l.landlord_email})
+                  </option>
                 ))}
               </select>
             </div>
@@ -302,7 +303,12 @@ function AgencyProperties() {
                   </svg>
                 </div>
               )}
-              <span className={`absolute top-2 right-2 text-xs px-2 py-1 rounded-full font-medium ${property.is_published ? 'bg-olive/20 text-olive' : 'bg-charcoal/20 text-charcoal/60'}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+              <span
+                className={`absolute top-2 right-2 text-xs px-2 py-1 rounded-full font-medium ${
+                  property.is_published ? 'bg-olive/20 text-olive' : 'bg-charcoal/20 text-charcoal/60'
+                }`}
+                style={{ fontFamily: "'Inter', sans-serif" }}
+              >
                 {property.is_published ? 'Published' : 'Hidden'}
               </span>
             </div>
