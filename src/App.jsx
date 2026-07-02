@@ -25,6 +25,13 @@ import AgencyTickets from './pages/agency/AgencyTickets'
 import AgencyPayments from './pages/agency/AgencyPayments'
 import AgencyTenants from './pages/agency/AgencyTenants'
 import AgencyLandlords from './pages/agency/AgencyLandlords'
+import LandlordLayout from './layouts/LandlordLayout'
+import LandlordProtectedRoute from './components/LandlordProtectedRoute'
+import LandlordDashboard from './pages/landlord/LandlordDashboard'
+import LandlordProperties from './pages/landlord/LandlordProperties'
+import LandlordLeases from './pages/landlord/LandlordLeases'
+import LandlordTickets from './pages/landlord/LandlordTickets'
+import LandlordPayments from './pages/landlord/LandlordPayments'
 
 function App() {
   return (
@@ -67,6 +74,19 @@ function App() {
           <Route path="/agency/payments" element={<AgencyPayments />} />
           <Route path="/agency/tenants" element={<AgencyTenants />} />
           <Route path="/agency/landlords" element={<AgencyLandlords />} />
+        </Route>
+        <Route
+          element={
+            <LandlordProtectedRoute>
+              <LandlordLayout />
+            </LandlordProtectedRoute>
+          }
+        >
+          <Route path="/landlord/dashboard" element={<LandlordDashboard />} />
+          <Route path="/landlord/properties" element={<LandlordProperties />} />
+          <Route path="/landlord/leases" element={<LandlordLeases />} />
+          <Route path="/landlord/tickets" element={<LandlordTickets />} />
+          <Route path="/landlord/payments" element={<LandlordPayments />} />
         </Route>
       </Routes>
     </BrowserRouter>
