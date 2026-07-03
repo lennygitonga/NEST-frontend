@@ -32,6 +32,13 @@ import LandlordProperties from './pages/landlord/LandlordProperties'
 import LandlordLeases from './pages/landlord/LandlordLeases'
 import LandlordTickets from './pages/landlord/LandlordTickets'
 import LandlordPayments from './pages/landlord/LandlordPayments'
+import AdminLayout from './layouts/AdminLayout'
+import AdminProtectedRoute from './components/AdminProtectedRoute'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminAgencies from './pages/admin/AdminAgencies'
+import AdminUsers from './pages/admin/AdminUsers'
+import AdminModeration from './pages/admin/AdminModeration'
+import AdminPayments from './pages/admin/AdminPayments'
 
 function App() {
   return (
@@ -87,6 +94,19 @@ function App() {
           <Route path="/landlord/leases" element={<LandlordLeases />} />
           <Route path="/landlord/tickets" element={<LandlordTickets />} />
           <Route path="/landlord/payments" element={<LandlordPayments />} />
+        </Route>
+        <Route
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout />
+            </AdminProtectedRoute>
+          }
+        >
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/agencies" element={<AdminAgencies />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/moderation" element={<AdminModeration />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
         </Route>
       </Routes>
     </BrowserRouter>
