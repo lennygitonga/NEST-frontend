@@ -14,7 +14,7 @@ function SectionCard({ title, children }) {
   )
 }
 
-function AgencyProfile() {
+function LandlordProfile() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
   const logout = useAuthStore((state) => state.logout)
@@ -261,4 +261,4 @@ function AgencyProfile() {
   )
 }
 
-export default AgencyProfile
+export default LandlordProfile
