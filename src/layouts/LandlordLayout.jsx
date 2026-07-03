@@ -8,6 +8,7 @@ const navItems = [
   { to: '/landlord/leases', label: 'Leases' },
   { to: '/landlord/tickets', label: 'Tickets' },
   { to: '/landlord/payments', label: 'Payments' },
+  { to: '/landlord/profile', label: 'Profile' },
 ]
 
 function LandlordLayout() {

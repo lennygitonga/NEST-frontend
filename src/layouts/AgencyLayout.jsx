@@ -11,6 +11,7 @@ const navItems = [
   { to: '/agency/payments', label: 'Payments' },
   { to: '/agency/tenants', label: 'Tenants' },
   { to: '/agency/landlords', label: 'Landlords' },
+  { to: '/agency/profile', label: 'Profile' },
 ]
 
 function AgencyLayout() {
