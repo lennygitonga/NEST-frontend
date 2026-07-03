@@ -17,7 +17,6 @@ function SectionCard({ title, children }) {
 function LandlordProfile() {
   const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
-  const logout = useAuthStore((state) => state.logout)
 
   const [profile, setProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
