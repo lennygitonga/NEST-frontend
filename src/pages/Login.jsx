@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
+import { motion, AnimatePresence } from 'framer-motion'
 import apiClient from '../api/client'
 import useAuthStore from '../store/authStore'
+import { easing } from '../utils/animations'
 
 function EyeIcon({ visible }) {
   return visible ? (
@@ -38,7 +40,6 @@ function Login() {
 
   const handleAuthError = (err) => {
     const data = err.response?.data
-
     if (data?.status === 'banned') {
       setError(data.reason ? `Account banned: ${data.reason}` : 'Your account has been banned.')
     } else if (data?.status === 'email_not_verified') {
@@ -59,33 +60,24 @@ function Login() {
     localStorage.setItem('refresh_token', data.tokens.refresh)
     localStorage.setItem('nest_user', JSON.stringify(data.user))
     setUser(data.user)
-
     const role = data.user?.profile?.role
-    if (role === 'AGENCY') {
-      navigate('/agency/dashboard')
-    } else if (role === 'LANDLORD') {
-      navigate('/landlord/dashboard')
-    } else if (role === 'NEST_ADMIN') {
-      navigate('/admin/dashboard')
-    } else {
-      navigate('/dashboard')
-    }
+    if (role === 'AGENCY') navigate('/agency/dashboard')
+    else if (role === 'LANDLORD') navigate('/landlord/dashboard')
+    else if (role === 'NEST_ADMIN') navigate('/admin/dashboard')
+    else navigate('/dashboard')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
-
     try {
       const response = await apiClient.post('/api/auth/login/', { email, password })
       const data = response.data
-
       if (data.status === '2fa_required') {
         navigate('/verify-2fa', { state: { uid: data.uid } })
         return
       }
-
       handleAuthSuccess(data)
     } catch (err) {
       handleAuthError(err)
@@ -97,27 +89,11 @@ function Login() {
   const handleGoogleSuccess = async (credentialResponse) => {
     setError('')
     setIsLoading(true)
-
     try {
       const response = await apiClient.post('/api/auth/google-login/', {
         id_token: credentialResponse.credential,
       })
-      const data = response.data
-      localStorage.setItem('access_token', data.tokens.access)
-      localStorage.setItem('refresh_token', data.tokens.refresh)
-      localStorage.setItem('nest_user', JSON.stringify(data.user))
-      setUser(data.user)
-
-      const role = data.user?.profile?.role
-      if (role === 'AGENCY') {
-        navigate('/agency/dashboard')
-      } else if (role === 'LANDLORD') {
-        navigate('/landlord/dashboard')
-      } else if (role === 'NEST_ADMIN') {
-        navigate('/admin/dashboard')
-      } else {
-        navigate('/dashboard')
-      }
+      handleAuthSuccess(response.data)
     } catch (err) {
       handleAuthError(err)
     } finally {
@@ -129,7 +105,12 @@ function Login() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-sand">
 
       {/* Brand panel */}
-      <div className="hidden lg:flex flex-col justify-between bg-charcoal text-sand px-12 py-16 relative overflow-hidden">
+      <motion.div
+        className="hidden lg:flex flex-col justify-between bg-charcoal text-sand px-12 py-16 relative overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, ease: easing }}
+      >
         <div>
           <span
             className="text-3xl tracking-tight"
@@ -168,12 +149,17 @@ function Login() {
             Properties, tenants, and payments, in one place.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* Form panel */}
       <div className="flex items-center justify-center px-6 py-16">
-        <div ref={formWrapperRef} className="w-full max-w-sm">
-
+        <motion.div
+          ref={formWrapperRef}
+          className="w-full max-w-sm"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: easing, delay: 0.15 }}
+        >
           <div className="lg:hidden mb-10">
             <span
               className="text-2xl text-charcoal tracking-tight"
@@ -237,11 +223,20 @@ function Login() {
               </div>
             </div>
 
-            {error && (
-              <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">
-                {error}
-              </div>
-            )}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2, ease: easing }}
+                  className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2"
+                >
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <button
               type="submit"
@@ -276,7 +271,7 @@ function Login() {
               Sign up
             </Link>
           </p>
-        </div>
+        </motion.div>
       </div>
     </div>
   )
