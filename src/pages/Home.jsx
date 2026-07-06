@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { easing } from '../utils/animations'
 
 function BuildingIllustration({ className }) {
   return (
@@ -67,7 +69,12 @@ function Home() {
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-32 w-full">
-          <div className="max-w-xl">
+          <motion.div
+            className="max-w-xl"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easing }}
+          >
             <h1
               className="text-5xl sm:text-6xl leading-tight mb-6"
               style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
@@ -97,7 +104,7 @@ function Home() {
                 Log in
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -161,7 +168,7 @@ function Home() {
             <p className="text-charcoal/60 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
               Pay rent, view receipts, and raise maintenance tickets, all in one place.
             </p>
-          </div>
+          </motion.div>
         </div>
       </section>
 

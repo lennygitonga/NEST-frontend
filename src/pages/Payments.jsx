@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { easing } from '../utils/animations'
 import { Link } from 'react-router-dom'
 import apiClient from '../api/client'
 import { downloadFile } from '../utils/downloadFile'
@@ -84,8 +86,15 @@ function ReceiptRow({ payment }) {
         </button>
       </div>
 
+      <AnimatePresence>
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-clay/10 text-sm space-y-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <motion.div
+          key="receipt"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25, ease: easing }}
+          className="overflow-hidden mt-4 pt-4 border-t border-clay/10 text-sm space-y-1" style={{ fontFamily: "'Inter', sans-serif" }}>
           {isLoading && <p className="text-charcoal/50">Loading...</p>}
           {receipt && (
             <>
@@ -95,8 +104,9 @@ function ReceiptRow({ payment }) {
               <p className="text-charcoal mt-2 italic">{receipt.confirmation_message}</p>
             </>
           )}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

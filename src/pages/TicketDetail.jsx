@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { easing } from '../utils/animations'
 import apiClient from '../api/client'
 
 const PRIORITY_STYLES = {
@@ -108,7 +110,12 @@ function TicketDetail() {
         <img src={ticket.photo} alt="" className="mt-5 rounded-lg max-h-72 object-cover" />
       )}
 
-      <div className="mt-10 pt-8 border-t border-clay/15">
+      <motion.div
+        className="mt-10 pt-8 border-t border-clay/15"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: easing }}
+      >
         <h2 className="text-lg text-charcoal mb-4" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
           Comments
         </h2>
@@ -149,7 +156,7 @@ function TicketDetail() {
             Send
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   )
 }
