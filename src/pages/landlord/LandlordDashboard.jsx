@@ -1,11 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { easing } from '../../../utils/animations'
 import useAuthStore from '../../store/authStore'
 import apiClient from '../../api/client'
 
 function StatCard({ label, value, sub, to }) {
   const inner = (
-    <div className="bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition">
+    <motion.div
+      className="bg-white border border-clay/15 rounded-xl p-5"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(34,31,28,0.08)' }}
+      transition={{ duration: 0.2, ease: easing }}
+    >
       <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
         {label}
       </p>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '../components/PageTransition'
+import { easing } from '../utils/animations'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 
@@ -93,9 +95,10 @@ function TenantLayout() {
                   >
                     Log out
                   </button>
-                </div>
+                </motion.div>
               </>
             )}
+            </AnimatePresence>
           </div>
         </div>
 

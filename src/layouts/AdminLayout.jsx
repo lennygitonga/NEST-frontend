@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import PageTransition from '../components/PageTransition'
+import { easing } from '../utils/animations'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 
@@ -64,10 +66,18 @@ function AdminLayout() {
               {initials}
             </button>
 
+            <AnimatePresence>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-clay/15 z-20 overflow-hidden">
+                <motion.div
+                  className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-clay/15 z-20 overflow-hidden"
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                  transition={{ duration: 0.15, ease: easing }}
+                  style={{ transformOrigin: 'top right' }}
+                >
                   <div className="px-4 py-3 border-b border-clay/10">
                     <p className="text-sm text-charcoal font-medium truncate">
                       {user?.first_name} {user?.last_name}
@@ -81,9 +91,10 @@ function AdminLayout() {
                   >
                     Log out
                   </button>
-                </div>
+                </motion.div>
               </>
             )}
+            </AnimatePresence>
           </div>
         </div>
 

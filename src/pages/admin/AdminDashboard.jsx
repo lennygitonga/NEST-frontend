@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { easing } from '../../../utils/animations'
 import useAuthStore from '../../store/authStore'
 import apiClient from '../../api/client'
 
