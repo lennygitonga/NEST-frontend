@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PageTransition from '../components/PageTransition'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 
@@ -106,7 +107,9 @@ function AdminLayout() {
       </header>
 
       <main>
-        <Outlet />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
     </div>
   )
