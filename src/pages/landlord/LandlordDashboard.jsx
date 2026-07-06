@@ -25,7 +25,7 @@ function StatCard({ label, value, sub, to }) {
           {sub}
         </p>
       )}
-    </div>
+    </motion.div>
   )
   return to ? <Link to={to}>{inner}</Link> : inner
 }
