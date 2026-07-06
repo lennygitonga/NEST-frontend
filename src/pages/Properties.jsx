@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import apiClient from '../api/client'
+import { easing } from '../utils/animations'
 
 const TYPE_OPTIONS = [
   { value: '', label: 'All types' },
@@ -13,9 +15,13 @@ function PropertyCard({ property }) {
   const cover = property.images?.[0]?.image
 
   return (
+    <motion.div
+      whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(34,31,28,0.10)' }}
+      transition={{ duration: 0.2, ease: easing }}
+    >
     <Link
       to={`/properties/${property.id}`}
-      className="block bg-white rounded-xl border border-clay/15 overflow-hidden hover:shadow-md transition group"
+      className="block bg-white rounded-xl border border-clay/15 overflow-hidden group"
     >
       <div className="aspect-[4/3] bg-clay/10 relative overflow-hidden">
         {cover ? (
@@ -54,6 +60,7 @@ function PropertyCard({ property }) {
         </div>
       </div>
     </Link>
+  </motion.div>
   )
 }
 
