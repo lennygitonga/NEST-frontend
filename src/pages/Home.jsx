@@ -1,29 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { easing } from '../utils/animations'
-
-function BuildingIllustration({ className }) {
-  return (
-    <svg
-      viewBox="0 0 480 220"
-      className={className}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <polyline
-        points="0,220 0,140 40,140 40,90 90,90 90,160 150,160 150,60 210,60 210,160 270,160 270,40 330,40 330,160 390,160 390,110 440,110 440,160 480,160 480,220"
-        stroke="#EFE6D8"
-        strokeWidth="2"
-        strokeOpacity="0.5"
-      />
-      <rect x="100" y="105" width="10" height="14" fill="#C97B5E" fillOpacity="0.6" />
-      <rect x="160" y="75" width="10" height="14" fill="#C97B5E" fillOpacity="0.6" />
-      <rect x="220" y="75" width="10" height="14" fill="#C97B5E" fillOpacity="0.6" />
-      <rect x="280" y="55" width="10" height="14" fill="#C97B5E" fillOpacity="0.6" />
-      <rect x="340" y="75" width="10" height="14" fill="#C97B5E" fillOpacity="0.6" />
-    </svg>
-  )
-}
 
 function StepIcon({ paths }) {
   return (
@@ -34,9 +12,57 @@ function StepIcon({ paths }) {
 }
 
 function Home() {
-  return (
-    <div className="bg-sand">
+  const containerRef = useRef(null)
+  const videoRef = useRef(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [hasPlayed, setHasPlayed] = useState(false)
 
+  useEffect(() => {
+    const container = containerRef.current
+    const video = videoRef.current
+    if (!container || !video) return
+
+    // Skill: Scroll-Triggered Input Lock Pattern (From 02-scroll-video.prompt.md)
+    const handleScrollTrigger = (e) => {
+      if (hasPlayed) return // Do not re-trigger once finished
+
+      const isScrollDown = e.deltaY > 0 || (e.touches && e.touches[0])
+
+      if (isScrollDown) {
+        if (!isPlaying) {
+          setIsPlaying(true)
+          video.play().catch((err) => {
+            console.log("Browser playback gesture restriction:", err)
+          })
+        }
+      }
+
+      // Lock input so multiple rapid gestures don't loop, skip, or break playback
+      if (isPlaying) {
+        if (e.cancelable) e.preventDefault()
+      }
+    }
+
+    const handleVideoEnded = () => {
+      setIsPlaying(false)
+      setHasPlayed(true)
+      video.pause() // Explicitly freeze on the precise final frame
+    }
+
+    // Attach native listener with passive option disabled to allow event cancellation/input locking
+    container.addEventListener('wheel', handleScrollTrigger, { passive: false })
+    container.addEventListener('touchmove', handleScrollTrigger, { passive: false })
+    video.addEventListener('ended', handleVideoEnded)
+
+    return () => {
+      container.removeEventListener('wheel', handleScrollTrigger)
+      container.removeEventListener('touchmove', handleScrollTrigger)
+      video.removeEventListener('ended', handleVideoEnded)
+    }
+  }, [isPlaying, hasPlayed])
+
+  return (
+    <div className="bg-sand min-h-screen">
       {/* Nav */}
       <nav className="sticky top-0 z-20 bg-sand/90 backdrop-blur-sm border-b border-clay/15">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -60,14 +86,26 @@ function Home() {
         </div>
       </nav>
 
-      {/* Hero — reserved for future 3D/video background */}
-      <section className="relative min-h-[calc(100vh-65px)] bg-charcoal text-sand overflow-hidden flex items-center">
-        {/* This layer is reserved for a future Three.js / Spline scene or background video.
-            It currently holds a static, faded illustration as a placeholder. */}
-        <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
-          <BuildingIllustration className="w-full max-w-4xl opacity-10" />
+      {/* Hero — Immersive Cinematic Video Section */}
+      <section 
+        ref={containerRef}
+        className="relative min-h-[calc(100vh-65px)] bg-charcoal text-sand overflow-hidden flex items-center"
+      >
+        {/* Hardware-accelerated direct video layer */}
+        <div className="absolute inset-0 w-full height-full z-0">
+          <video
+            ref={videoRef}
+            src="/assets/nest-hero-tour.mp4"
+            className="w-full h-full object-cover opacity-40 transition-opacity duration-1000"
+            style={{ opacity: isPlaying || hasPlayed ? 0.6 : 0.25 }}
+            muted
+            playsInline
+            preload="auto"
+          />
+          {/* Optional: object-fit: contain; if you prefer exact aspect bounding */}
         </div>
 
+        {/* Dynamic UI Content Overlay */}
         <div className="relative z-10 max-w-6xl mx-auto px-6 py-32 w-full">
           <motion.div
             className="max-w-xl"
@@ -94,7 +132,7 @@ function Home() {
                 className="bg-sienna text-sand px-6 py-3 rounded-lg font-medium hover:bg-clay transition"
                 style={{ fontFamily: "'Inter', sans-serif" }}
               >
-                Get started
+                {hasPlayed ? "Explore Available Suites" : "Get started"}
               </Link>
               <Link
                 to="/login"
@@ -168,7 +206,7 @@ function Home() {
             <p className="text-charcoal/60 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
               Pay rent, view receipts, and raise maintenance tickets, all in one place.
             </p>
-          </motion.div>
+          </div> {/* FIXED: Was previously </motion.div> causing compilation crash */}
         </div>
       </section>
 

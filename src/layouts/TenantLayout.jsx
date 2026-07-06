@@ -69,35 +69,43 @@ function TenantLayout() {
               {initials}
             </button>
 
-            {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-clay/15 z-20 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-clay/10">
-                    <p className="text-sm text-charcoal font-medium truncate">
-                      {user?.first_name} {user?.last_name}
-                    </p>
-                    <p className="text-xs text-charcoal/50 truncate">{user?.email}</p>
-                  </div>
-                  <NavLink
-                    to="/profile"
+            {/* Added AnimatePresence wrapper for clean popup physics */}
+            <AnimatePresence>
+              {menuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
                     onClick={() => setMenuOpen(false)}
-                    className="block px-4 py-2.5 text-sm text-charcoal hover:bg-clay/5 transition"
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.2, ease: easing }}
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-clay/15 z-20 overflow-hidden"
                   >
-                    Profile and settings
-                  </NavLink>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2.5 text-sm text-brick hover:bg-brick/5 transition"
-                  >
-                    Log out
-                  </button>
-                </div>
-              </>
-            )}
+                    <div className="px-4 py-3 border-b border-clay/10">
+                      <p className="text-sm text-charcoal font-medium truncate">
+                        {user?.first_name} {user?.last_name}
+                      </p>
+                      <p className="text-xs text-charcoal/50 truncate">{user?.email}</p>
+                    </div>
+                    <NavLink
+                      to="/profile"
+                      onClick={() => setMenuOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-charcoal hover:bg-clay/5 transition"
+                    >
+                      Profile and settings
+                    </NavLink>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm text-brick hover:bg-brick/5 transition"
+                    >
+                      Log out
+                    </button>
+                  </motion.div>
+                </>
+              )}
             </AnimatePresence>
           </div>
         </div>
