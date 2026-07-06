@@ -95,7 +95,7 @@ function TenantLayout() {
                   >
                     Log out
                   </button>
-                </motion.div>
+                </div>
               </>
             )}
             </AnimatePresence>
