@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import apiClient from '../api/client'
 
 const PRIORITY_STYLES = {
-  LOW: 'bg-olive/10 text-olive',
-  MEDIUM: 'bg-clay/10 text-clay',
-  HIGH: 'bg-sienna/10 text-sienna',
-  URGENT: 'bg-brick/10 text-brick',
+  LOW: 'border-olive/20 text-olive bg-olive/5',
+  MEDIUM: 'border-clay/20 text-clay bg-clay/5',
+  HIGH: 'border-sienna/30 text-sienna bg-sienna/5',
+  URGENT: 'border-brick/30 text-brick bg-brick/5',
 }
 
 const STATUS_STYLES = {
-  OPEN: 'bg-clay/10 text-clay',
-  IN_PROGRESS: 'bg-sienna/10 text-sienna',
-  RESOLVED: 'bg-olive/10 text-olive',
-  CLOSED: 'bg-charcoal/10 text-charcoal/50',
+  OPEN: 'border-clay/20 text-clay bg-clay/5',
+  IN_PROGRESS: 'border-sienna/20 text-sienna bg-sienna/5',
+  RESOLVED: 'border-olive/20 text-olive bg-olive/5',
+  CLOSED: 'border-charcoal/10 text-charcoal/40 bg-charcoal/5',
 }
 
 function Tickets() {
@@ -38,15 +39,23 @@ function Tickets() {
         apiClient.get('/api/tickets/'),
         apiClient.get('/api/properties/leases/'),
       ])
-      setTickets(ticketsRes.data)
+      
+      const incomingTickets = ticketsRes.data
+      const incomingLeases = leasesRes.data
 
-      const uniqueProps = await Promise.all(
-        [...new Set(leasesRes.data.map((l) => l.property))].map((id) =>
-          apiClient.get(`/api/properties/${id}/`).then((r) => r.data)
+      setTickets(Array.isArray(incomingTickets) ? incomingTickets : [])
+
+      if (Array.isArray(incomingLeases)) {
+        const uniqueProps = await Promise.all(
+          [...new Set(incomingLeases.map((l) => l.property))].map((id) =>
+            apiClient.get(`/api/properties/${id}/`).then((r) => r.data)
+          )
         )
-      )
-      setProperties(uniqueProps)
-      if (uniqueProps.length > 0) setPropertyId(String(uniqueProps[0].id))
+        setProperties(uniqueProps)
+        if (uniqueProps.length > 0) setPropertyId(String(uniqueProps[0].id))
+      } else {
+        setProperties([])
+      }
     } catch {
       setError('Could not load your tickets.')
     } finally {
@@ -76,140 +85,143 @@ function Tickets() {
       fetchData()
     } catch (err) {
       const data = err.response?.data
-      setSubmitError(data?.error || 'Could not file the ticket. Please try again.')
+      setSubmitError(data?.error || 'Could not file ticket profile.')
       setSubmitStatus('error')
     }
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <div className="flex items-center justify-between mb-2">
-        <h1
-          className="text-3xl text-charcoal"
-          style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-        >
-          Tickets
-        </h1>
-        {properties.length > 0 && (
+    <div className="max-w-3xl mx-auto px-8 py-16 space-y-12">
+      {/* Title block with structural floating button */}
+      <div className="flex items-end justify-between border-b border-clay/10 pb-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl text-charcoal font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            Maintenance Desk
+          </h1>
+          <p className="text-charcoal/50 text-xs font-light" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Issue logs, technical work orders, and resolution flows.
+          </p>
+        </div>
+        {Array.isArray(properties) && properties.length > 0 && (
           <button
             onClick={() => setShowForm((v) => !v)}
-            className="bg-sienna text-sand px-4 py-2 rounded-lg font-medium hover:bg-clay transition text-sm"
+            className="text-xs font-medium uppercase tracking-wider text-sienna hover:text-charcoal transition duration-150"
             style={{ fontFamily: "'Inter', sans-serif" }}
           >
-            {showForm ? 'Cancel' : 'Report an issue'}
+            {showForm ? 'Close panel' : '⚡ Log descriptive issue'}
           </button>
         )}
       </div>
-      <p className="text-charcoal/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-        Report maintenance issues and track their progress.
-      </p>
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white border border-clay/15 rounded-xl p-6 mb-8 space-y-4"
-          style={{ fontFamily: "'Inter', sans-serif" }}
-        >
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Property</label>
-            <select
-              value={propertyId}
-              onChange={(e) => setPropertyId(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
-            >
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>{p.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm"
-              placeholder="e.g. Leaking kitchen tap"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              rows={4}
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay focus:border-clay transition text-sm resize-none"
-              placeholder="Describe the issue in detail..."
-            />
-          </div>
-
-          {submitError && (
-            <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">
-              {submitError}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitStatus === 'submitting'}
-            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
+      {/* Form Overlay Area */}
+      <AnimatePresence>
+        {showForm && (
+          <motion.form
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            onSubmit={handleSubmit}
+            className="overflow-hidden bg-clay/5 border border-clay/10 rounded-xl p-6 space-y-4 font-light text-xs text-charcoal"
+            style={{ fontFamily: "'Inter', sans-serif" }}
           >
-            {submitStatus === 'submitting' ? 'Submitting...' : 'Submit ticket'}
-          </button>
-        </form>
-      )}
+            <div>
+              <label className="block text-charcoal/50 uppercase text-[10px] font-mono mb-1.5">Impacted Property Asset</label>
+              <select
+                value={propertyId}
+                onChange={(e) => setPropertyId(e.target.value)}
+                className="w-full px-4 py-2.5 rounded border border-clay/20 bg-white text-charcoal text-xs font-light focus:outline-none"
+              >
+                {Array.isArray(properties) && properties.map((p) => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-charcoal/50 uppercase text-[10px] font-mono mb-1.5">Problem Core (Title)</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 rounded border border-clay/20 bg-white text-charcoal text-xs font-light focus:outline-none"
+                placeholder="Brief summary of failure..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-charcoal/50 uppercase text-[10px] font-mono mb-1.5">Granular Context Description</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                rows={4}
+                className="w-full px-4 py-2.5 rounded border border-clay/20 bg-white text-charcoal text-xs font-light focus:outline-none resize-none"
+                placeholder="Elaborate on details, error patterns, location parameters..."
+              />
+            </div>
+
+            {submitError && (
+              <p className="text-brick font-mono text-[11px]">{submitError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitStatus === 'submitting'}
+              className="bg-charcoal text-sand uppercase font-medium tracking-wider text-[10px] px-5 py-2.5 rounded hover:bg-sienna transition disabled:opacity-50"
+            >
+              {submitStatus === 'submitting' ? 'Transmitting...' : 'File log entry'}
+            </button>
+          </motion.form>
+        )}
+      </AnimatePresence>
 
       {isLoading && (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
-          Loading...
-        </p>
+        <p className="text-xs font-mono text-charcoal/40 uppercase tracking-widest">Polling servers...</p>
       )}
 
       {error && (
-        <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-4 py-3">
+        <div className="text-xs text-brick border border-brick/10 bg-brick/5 rounded px-4 py-3 max-w-max font-mono">
           {error}
         </div>
       )}
 
-      {!isLoading && !error && properties.length === 0 && (
-        <div className="bg-white border border-clay/15 rounded-xl p-8 text-center">
-          <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
-            You need an active lease before you can file maintenance tickets.
-          </p>
-        </div>
-      )}
-
-      {!isLoading && !error && properties.length > 0 && tickets.length === 0 && (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
-          No tickets filed yet.
+      {!isLoading && !error && (!Array.isArray(properties) || properties.length === 0) && (
+        <p className="text-sm font-light text-charcoal/50 font-serif italic">
+          An active workspace lease configuration is required before ticketing initialization parameters can clear.
         </p>
       )}
 
-      <div className="space-y-3">
-        {tickets.map((ticket) => (
+      {!isLoading && !error && Array.isArray(properties) && properties.length > 0 && (!Array.isArray(tickets) || tickets.length === 0) && (
+        <p className="text-sm font-light text-charcoal/50 font-serif italic">
+          No operational issues logged under this identifier.
+        </p>
+      )}
+
+      {/* Ticket Logs Feed */}
+      <div className="space-y-4">
+        {Array.isArray(tickets) && tickets.map((ticket) => (
           <Link
             key={ticket.id}
             to={`/tickets/${ticket.id}`}
-            className="block bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition"
+            className="block border border-clay/15 rounded-xl p-6 bg-white hover:border-sienna/40 transition duration-200"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-charcoal font-medium truncate" style={{ fontFamily: "'Fraunces', serif" }}>
+            <div className="flex items-center justify-between gap-6">
+              <div className="min-w-0 space-y-1">
+                <p className="text-base text-charcoal font-light truncate" style={{ fontFamily: "'Fraunces', serif" }}>
                   {ticket.title}
                 </p>
-                <p className="text-charcoal/40 text-xs mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Filed {new Date(ticket.created_at).toLocaleDateString()}
+                <p className="text-[10px] text-charcoal/40 font-mono" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  Opened {new Date(ticket.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${PRIORITY_STYLES[ticket.priority]}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+
+              {/* Status & Priority chips using thin mono aesthetics */}
+              <div className="flex items-center gap-2 shrink-0 font-mono text-[9px] uppercase tracking-wider" style={{ fontFamily: "'Inter', sans-serif" }}>
+                <span className={`px-2.5 py-0.5 rounded border ${PRIORITY_STYLES[ticket.priority]}`}>
                   {ticket.priority}
                 </span>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${STATUS_STYLES[ticket.status]}`} style={{ fontFamily: "'Inter', sans-serif" }}>
+                <span className={`px-2.5 py-0.5 rounded border ${STATUS_STYLES[ticket.status]}`}>
                   {ticket.status.replace('_', ' ')}
                 </span>
               </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import apiClient from '../api/client'
 
 function LeaseCard({ lease }) {
@@ -22,93 +23,103 @@ function LeaseCard({ lease }) {
             const response = await apiClient.get(`/api/properties/leases/${lease.id}/summary/`)
             setSummary(response.data.summary)
         } catch {
-            setSummaryError('Could not generate a summary right now. Please try again.')
+            setSummaryError('Could not sync machine summary right now. Please reload.')
         } finally {
             setIsSummarizing(false)
         }
     }
 
     return (
-        <div className="bg-white border border-clay/15 rounded-xl p-6">
-            <div className="flex items-start justify-between gap-4">
-                <div>
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-clay/15 rounded-xl p-8 space-y-8 shadow-sm"
+        >
+            {/* Row 1: Header */}
+            <div className="flex items-start justify-between gap-6 border-b border-clay/10 pb-6">
+                <div className="space-y-1">
                     <Link
                         to={`/properties/${lease.property}`}
-                        className="text-xl text-charcoal hover:text-clay transition"
-                        style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
+                        className="text-2xl text-charcoal hover:text-sienna transition font-light tracking-tight"
+                        style={{ fontFamily: "'Fraunces', serif" }}
                     >
-                        {property?.title || `Property #${lease.property}`}
+                        {property?.title || `Lease Contract #${lease.property}`}
                     </Link>
                     {property && (
-                        <p className="text-charcoal/50 text-sm mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <p className="text-charcoal/50 text-xs font-light" style={{ fontFamily: "'Inter', sans-serif" }}>
                             {property.address}, {property.city}
                         </p>
                     )}
                 </div>
                 <span
-                    className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-full ${lease.is_active ? 'bg-olive/10 text-olive' : 'bg-charcoal/10 text-charcoal/50'
-                        }`}
+                    className={`shrink-0 text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded border ${
+                      lease.is_active ? 'border-olive/30 text-olive bg-olive/5' : 'border-clay/20 text-charcoal/40 bg-clay/5'
+                    }`}
                     style={{ fontFamily: "'Inter', sans-serif" }}
                 >
-                    {lease.is_active ? 'Active' : 'Inactive'}
+                    {lease.is_active ? 'Active Engagement' : 'Archived'}
                 </span>
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-4 mt-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-                <div>
-                    <p className="text-charcoal/50 text-xs uppercase tracking-wide">Rent</p>
-                    <p className="text-charcoal font-medium mt-1">KSh {Number(lease.rent_amount).toLocaleString()}/mo</p>
+            {/* Row 2: Metrics Grid */}
+            <div className="grid grid-cols-3 gap-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+                <div className="space-y-1">
+                    <p className="text-charcoal/40 text-[10px] uppercase tracking-wider font-mono">Monthly Remittance</p>
+                    <p className="text-charcoal font-medium text-base">KSh {Number(lease.rent_amount).toLocaleString()}</p>
                 </div>
-                <div>
-                    <p className="text-charcoal/50 text-xs uppercase tracking-wide">Start date</p>
-                    <p className="text-charcoal font-medium mt-1">{new Date(lease.start_date).toLocaleDateString()}</p>
+                <div className="space-y-1">
+                    <p className="text-charcoal/40 text-[10px] uppercase tracking-wider font-mono">Commencement Date</p>
+                    <p className="text-charcoal font-light text-sm">{new Date(lease.start_date).toLocaleDateString()}</p>
                 </div>
-                <div>
-                    <p className="text-charcoal/50 text-xs uppercase tracking-wide">End date</p>
-                    <p className="text-charcoal font-medium mt-1">{new Date(lease.end_date).toLocaleDateString()}</p>
+                <div className="space-y-1">
+                    <p className="text-charcoal/40 text-[10px] uppercase tracking-wider font-mono">Termination Date</p>
+                    <p className="text-charcoal font-light text-sm">{new Date(lease.end_date).toLocaleDateString()}</p>
                 </div>
             </div>
 
-            {lease.lease_document && (
-                <a
-                    href={lease.lease_document}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block mt-5 text-sienna text-sm font-medium hover:text-clay"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                >
-                    View lease document →
-                </a>
-            )}
-
-            <div className="mt-6 pt-6 border-t border-clay/10">
-                {summary ? (
-                    <div>
-                        <p className="text-charcoal/50 text-xs uppercase tracking-wide mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            In plain English
-                        </p>
-                        <p className="text-charcoal leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
-                            {summary}
-                        </p>
-                    </div>
-                ) : (
-                    <button
-                        onClick={handleSummarize}
-                        disabled={isSummarizing}
-                        className="text-sienna text-sm font-medium hover:text-clay disabled:opacity-60"
+            {/* Row 3: Actions & Plain-English Engine */}
+            <div className="pt-6 border-t border-clay/10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                {lease.lease_document && (
+                    <a
+                        href={lease.lease_document}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sienna text-xs font-medium uppercase tracking-wider hover:text-charcoal transition underline decoration-sienna/30 underline-offset-4"
                         style={{ fontFamily: "'Inter', sans-serif" }}
                     >
-                        {isSummarizing ? 'Summarizing...' : 'Explain this lease in plain English →'}
-                    </button>
+                        Review Executed Document →
+                    </a>
                 )}
 
-                {summaryError && (
-                    <p className="text-sm text-brick mt-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        {summaryError}
-                    </p>
-                )}
+                <div className="max-w-md shrink-0">
+                    {summary ? (
+                        <div className="bg-clay/5 border border-clay/10 p-4 rounded-lg space-y-1">
+                            <p className="text-charcoal/40 text-[9px] uppercase tracking-widest font-mono" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                Plain English Digest
+                            </p>
+                            <p className="text-charcoal/80 text-xs font-light leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+                                {summary}
+                            </p>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleSummarize}
+                            disabled={isSummarizing}
+                            className="text-charcoal/60 hover:text-sienna text-xs font-mono uppercase tracking-wider disabled:opacity-50 transition"
+                            style={{ fontFamily: "'Inter', sans-serif" }}
+                        >
+                            {isSummarizing ? 'Synthesizing...' : '⚡ Generate Plain English Summary'}
+                        </button>
+                    )}
+
+                    {summaryError && (
+                        <p className="text-[11px] text-brick font-mono mt-2" style={{ fontFamily: "'Inter', sans-serif" }}>
+                            {summaryError}
+                        </p>
+                    )}
+                </div>
             </div>
-        </div>
+        </motion.div>
     )
 }
 
@@ -125,46 +136,43 @@ function Lease() {
     }, [])
 
     return (
-        <div className="max-w-3xl mx-auto px-6 py-12">
-            <h1
-                className="text-3xl text-charcoal mb-2"
-                style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-            >
-                Lease
-            </h1>
-            <p className="text-charcoal/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Your lease details and agreement.
-            </p>
+        <div className="max-w-4xl mx-auto px-8 py-16 space-y-12">
+            <div className="max-w-md space-y-2">
+                <h1 className="text-3xl text-charcoal font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+                    Your Agreements
+                </h1>
+                <p className="text-charcoal/60 text-sm font-light leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
+                    Legally-binding contracts, monthly frameworks, and structural asset breakdowns.
+                </p>
+            </div>
 
             {isLoading && (
-                <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    Loading...
-                </p>
+                <p className="text-xs font-mono text-charcoal/40 uppercase tracking-widest">Opening vault...</p>
             )}
 
             {error && (
-                <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-4 py-3">
+                <div className="text-sm text-brick bg-brick/5 border border-brick/15 rounded-lg px-4 py-3 font-mono">
                     {error}
                 </div>
             )}
 
-            {!isLoading && !error && leases.length === 0 && (
-                <div className="bg-white border border-clay/15 rounded-xl p-8 text-center">
-                    <p className="text-charcoal/60 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        You don't have a lease yet. Once an agency approves your application, your lease will appear here.
+            {!isLoading && !error && (!Array.isArray(leases) || leases.length === 0) && (
+                <div className="bg-white border border-clay/10 rounded-xl p-12 text-center max-w-xl">
+                    <p className="text-charcoal/50 text-sm font-light mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        No active structural assignments found under your profile namespace.
                     </p>
                     <Link
                         to="/properties"
-                        className="inline-block bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition"
+                        className="inline-block bg-charcoal text-sand text-xs font-medium px-5 py-2.5 rounded tracking-wide hover:bg-sienna transition"
                         style={{ fontFamily: "'Inter', sans-serif" }}
                     >
-                        Browse properties
+                        Locate Properties
                     </Link>
                 </div>
             )}
 
-            <div className="space-y-6">
-                {leases.map((lease) => (
+            <div className="space-y-8">
+                {Array.isArray(leases) && leases.map((lease) => (
                     <LeaseCard key={lease.id} lease={lease} />
                 ))}
             </div>
