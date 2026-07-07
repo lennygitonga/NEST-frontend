@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback } from 'react'
+import { motion } from 'framer-motion'
+import { easing } from '../../utils/animations'
 import apiClient from '../../api/client'
 import { downloadFile } from '../../utils/downloadFile'
 
 const PAYMENT_STATUS_STYLES = {
-  PENDING: 'bg-clay/10 text-clay',
-  COMPLETED: 'bg-olive/10 text-olive',
-  FAILED: 'bg-brick/10 text-brick',
-  REFUNDED: 'bg-charcoal/10 text-charcoal/50',
+  PENDING: 'border-clay/20 bg-clay/5 text-clay',
+  COMPLETED: 'border-olive/20 bg-olive/5 text-olive',
+  FAILED: 'border-brick/20 bg-brick/5 text-brick',
+  REFUNDED: 'border-clay/20 bg-clay/5 text-charcoal/40',
 }
 
 const INVOICE_STATUS_STYLES = {
-  PENDING: 'bg-clay/10 text-clay',
-  PAID: 'bg-olive/10 text-olive',
-  OVERDUE: 'bg-brick/10 text-brick',
+  PENDING: 'border-clay/20 bg-clay/5 text-clay',
+  PAID: 'border-olive/20 bg-olive/5 text-olive',
+  OVERDUE: 'border-brick/20 bg-brick/5 text-brick',
 }
 
 function AgencyPayments() {
@@ -47,7 +49,7 @@ function AgencyPayments() {
       setInvoices(invoicesRes.data)
       setAnalytics(analyticsRes.data)
     } catch {
-      setError('Could not load payment data.')
+      setError('Could not reconcile transactional database states.')
     } finally {
       setIsLoading(false)
     }
@@ -101,284 +103,304 @@ function AgencyPayments() {
       fetchData()
     } catch (err) {
       const data = err.response?.data
-      setSubmitError(data?.error || 'Could not create invoice.')
+      setSubmitError(data?.error || 'Invoice configuration generation rejected.')
       setSubmitStatus('error')
     }
   }
 
-  const totalCollected = payments
-    .filter((p) => p.status === 'COMPLETED')
-    .reduce((sum, p) => sum + Number(p.total_amount), 0)
+  const inputClasses = "w-full px-4 py-3 rounded-xl border border-clay/15 bg-sand/30 text-charcoal focus:outline-none focus:border-clay/40 focus:bg-white transition text-sm"
+  const labelClasses = "block text-[9px] font-mono uppercase tracking-widest text-charcoal/40 mb-2"
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <h1
-        className="text-3xl text-charcoal mb-2"
-        style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-      >
-        Payments
-      </h1>
-      <p className="text-charcoal/60 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-        Track rent payments and manage invoices.
-      </p>
-
-      {analytics && (
-        <div className="bg-white border border-clay/15 rounded-xl p-6 mb-8">
-          <div className="grid sm:grid-cols-3 gap-6 mb-4">
-            <div>
-              <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>Total collected</p>
-              <p className="text-2xl text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                KSh {Number(analytics.total_collected || 0).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>Agency earnings</p>
-              <p className="text-2xl text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                KSh {Number(analytics.agency_earnings || 0).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>Vacant properties</p>
-              <p className="text-2xl text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                {analytics.vacant_properties || 0}
-              </p>
-            </div>
+    <div className="min-h-screen bg-sand text-charcoal py-16 px-8">
+      <div className="max-w-3xl mx-auto space-y-12">
+        
+        {/* Header Block */}
+        <header className="border-b border-clay/10 pb-8">
+          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40 mb-2">
+            <span>Capital Liquidity</span>
+            <span className="w-1 h-1 rounded-full bg-olive" />
+            <span>Ledger Inflows</span>
           </div>
-          {analytics.ai_insight && (
-            <p className="text-sm text-charcoal/70 italic border-t border-clay/10 pt-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-              {analytics.ai_insight}
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-1 bg-white border border-clay/15 rounded-lg p-1">
-          {['payments', 'invoices'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition capitalize ${
-                activeTab === tab ? 'bg-sienna text-sand' : 'text-charcoal/60 hover:text-charcoal'
-              }`}
-              style={{ fontFamily: "'Inter', sans-serif" }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        {activeTab === 'invoices' && (
-          <button
-            onClick={() => setShowInvoiceForm((v) => !v)}
-            className="bg-sienna text-sand px-4 py-2 rounded-lg font-medium hover:bg-clay transition text-sm"
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            {showInvoiceForm ? 'Cancel' : 'Create invoice'}
-          </button>
-        )}
-      </div>
-
-      {showInvoiceForm && activeTab === 'invoices' && (
-        <form
-          onSubmit={handleCreateInvoice}
-          className="bg-white border border-clay/15 rounded-xl p-6 mb-8 space-y-4"
-          style={{ fontFamily: "'Inter', sans-serif" }}
-        >
-          <p className="text-lg text-charcoal" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-            New invoice
+          <h1 className="text-3xl font-light tracking-tight font-serif">
+            Financial Reconciliation
+          </h1>
+          <p className="text-xs font-mono text-charcoal/50 mt-1">
+            Audit trailing rental payments and enforce custom transactional structures via statements.
           </p>
+        </header>
 
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Title</label>
-            <input
-              type="text"
-              value={invoiceTitle}
-              onChange={(e) => setInvoiceTitle(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
-              placeholder="e.g. Water and electricity — July 2026"
-            />
+        {/* Analytics Summary */}
+        {analytics && (
+          <div className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm space-y-6">
+            <div className="grid sm:grid-cols-3 gap-6">
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-charcoal/40 mb-1">Gross Collected Layer</p>
+                <p className="text-xl font-light tracking-tight font-serif">
+                  KSh {Number(analytics.total_collected || 0).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-charcoal/40 mb-1">Retained Margin Share</p>
+                <p className="text-xl font-light tracking-tight font-serif text-olive">
+                  KSh {Number(analytics.agency_earnings || 0).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-mono uppercase tracking-wider text-charcoal/40 mb-1">Unassigned Spatials</p>
+                <p className="text-xl font-light tracking-tight font-serif text-sienna">
+                  {analytics.vacant_properties || 0} Nodes
+                </p>
+              </div>
+            </div>
+            {analytics.ai_insight && (
+              <div className="border-t border-clay/5 pt-4 bg-sand/20 -mx-6 -mb-6 p-4 rounded-b-xl">
+                <p className="text-[9px] font-mono text-charcoal/40 uppercase tracking-widest mb-1">[ Machine Intelligence Liquidity Heuristic ]</p>
+                <p className="text-xs text-charcoal/70 italic font-sans font-light leading-relaxed">
+                  "{analytics.ai_insight}"
+                </p>
+              </div>
+            )}
           </div>
+        )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">Tenant</label>
-              <select
-                value={invoiceTenantId}
-                onChange={(e) => setInvoiceTenantId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
+        {/* Action Controls & Navigation Router */}
+        <div className="flex items-center justify-between border-b border-clay/10 pb-4">
+          <div className="flex gap-4 font-mono text-xs uppercase tracking-widest">
+            {['payments', 'invoices'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 transition relative ${
+                  activeTab === tab ? 'text-charcoal font-medium' : 'text-charcoal/40 hover:text-charcoal/70'
+                }`}
               >
-                {tenants.length === 0 && <option value="">No tenants yet</option>}
-                {tenants.map((t) => (
-                  <option key={t.tenant_id} value={t.tenant_id}>
-                    {t.tenant_name} ({t.tenant_email})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">Property</label>
-              <select
-                value={invoicePropertyId}
-                onChange={(e) => setInvoicePropertyId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
-              >
-                {properties.length === 0 && <option value="">No properties yet</option>}
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Due date</label>
-            <input
-              type="date"
-              value={invoiceDueDate}
-              onChange={(e) => setInvoiceDueDate(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-2">Items</label>
-            <div className="space-y-2">
-              {invoiceItems.map((item, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={item.description}
-                    onChange={(e) => updateItem(i, 'description', e.target.value)}
-                    required
-                    placeholder="Description"
-                    className="flex-1 px-3 py-2 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
+                {tab}
+                {activeTab === tab && (
+                  <motion.div 
+                    className="absolute bottom-0 left-0 right-0 h-[1px] bg-charcoal" 
+                    layoutId="activePaymentTab"
+                    transition={{ ease: easing, duration: 0.25 }}
                   />
-                  <input
-                    type="number"
-                    value={item.amount}
-                    onChange={(e) => updateItem(i, 'amount', e.target.value)}
-                    required
-                    placeholder="Amount"
-                    className="w-32 px-3 py-2 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm"
-                  />
-                  {invoiceItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeItem(i)}
-                      className="text-brick hover:text-brick/70 transition text-sm px-2"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                )}
+              </button>
+            ))}
+          </div>
+          {activeTab === 'invoices' && (
             <button
-              type="button"
-              onClick={addItem}
-              className="mt-2 text-sienna text-sm font-medium hover:text-clay"
+              onClick={() => setShowInvoiceForm((v) => !v)}
+              className="bg-sienna text-sand px-4 py-2 rounded-xl font-mono uppercase tracking-wider text-2xs hover:bg-clay transition"
             >
-              + Add item
+              {showInvoiceForm ? 'Cancel Array' : 'Issue Invoice'}
             </button>
-          </div>
-
-          {submitError && (
-            <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">
-              {submitError}
-            </div>
           )}
-
-          <button
-            type="submit"
-            disabled={submitStatus === 'submitting'}
-            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm"
-          >
-            {submitStatus === 'submitting' ? 'Creating...' : 'Create invoice'}
-          </button>
-        </form>
-      )}
-
-      {isLoading && (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
-      )}
-
-      {error && (
-        <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-4 py-3">
-          {error}
         </div>
-      )}
 
-      {activeTab === 'payments' && (
-        <div className="space-y-3">
-          {payments.length === 0 && !isLoading && (
-            <p className="text-charcoal/50 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>No payments yet.</p>
-          )}
-          {payments.map((p) => (
-            <div key={p.id} className="bg-white border border-clay/15 rounded-xl p-5 flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-charcoal font-medium truncate" style={{ fontFamily: "'Fraunces', serif" }}>
-                  {p.property_title}
-                </p>
-                <p className="text-charcoal/50 text-sm mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {p.tenant_email} · {new Date(p.payment_for_month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-charcoal font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  KSh {Number(p.total_amount).toLocaleString()}
-                </p>
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full inline-block mt-1 ${PAYMENT_STATUS_STYLES[p.status]}`} style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {p.status}
-                </span>
-              </div>
+        {/* Invoice Creation Block */}
+        {showInvoiceForm && activeTab === 'invoices' && (
+          <div className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-base font-light text-charcoal tracking-tight font-serif">
+                Generate Custom Ad-Hoc Invoice Statement
+              </h2>
+              <p className="text-[10px] font-mono text-charcoal/40 mt-1 uppercase tracking-wider">
+                This transaction routes an isolated financial obligation directly to the tenant's interface.
+              </p>
             </div>
-          ))}
-        </div>
-      )}
 
-      {activeTab === 'invoices' && (
-        <div className="space-y-3">
-          {invoices.length === 0 && !isLoading && (
-            <p className="text-charcoal/50 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>No invoices yet.</p>
-          )}
-          {invoices.map((inv) => (
-            <div key={inv.id} className="bg-white border border-clay/15 rounded-xl p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-charcoal font-medium truncate" style={{ fontFamily: "'Fraunces', serif" }}>
-                    {inv.title}
-                  </p>
-                  <p className="text-charcoal/50 text-sm mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    {inv.tenant_email} · due {new Date(inv.due_date).toLocaleDateString()}
-                  </p>
-                  {inv.ai_summary && (
-                    <p className="text-charcoal/60 text-sm mt-2 italic" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      {inv.ai_summary}
-                    </p>
-                  )}
+            <form onSubmit={handleCreateInvoice} className="space-y-4 pt-4 border-t border-clay/5">
+              <div>
+                <label className={labelClasses}>Invoice Context Header</label>
+                <input
+                  type="text"
+                  value={invoiceTitle}
+                  onChange={(e) => setInvoiceTitle(e.target.value)}
+                  required
+                  className={inputClasses}
+                  placeholder="e.g., Water Utility Consolidation — Quarter 3"
+                />
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>Debtor Profile Node</label>
+                  <select value={invoiceTenantId} onChange={(e) => setInvoiceTenantId(e.target.value)} className={inputClasses}>
+                    {tenants.length === 0 && <option value="">No targets registered</option>}
+                    {tenants.map((t) => (
+                      <option key={t.tenant_id} value={t.tenant_id}>{t.tenant_name} ({t.tenant_email})</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-charcoal font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    KSh {Number(inv.total_amount).toLocaleString()}
+                <div>
+                  <label className={labelClasses}>Associated Infrastructure Asset</label>
+                  <select value={invoicePropertyId} onChange={(e) => setInvoicePropertyId(e.target.value)} className={inputClasses}>
+                    {properties.length === 0 && <option value="">No spatial matrices compiled</option>}
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClasses}>Maturity Timeline Bound (Due Date)</label>
+                <input
+                  type="date"
+                  value={invoiceDueDate}
+                  onChange={(e) => setInvoiceDueDate(e.target.value)}
+                  required
+                  className={inputClasses}
+                />
+              </div>
+
+              {/* Items Line Breakdown Array */}
+              <div className="space-y-4 pt-2">
+                <label className={labelClasses}>Line Item Allocation Sets</label>
+                <div className="space-y-2">
+                  {invoiceItems.map((item, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => updateItem(i, 'description', e.target.value)}
+                        required
+                        placeholder="Item specification text"
+                        className={inputClasses}
+                      />
+                      <input
+                        type="number"
+                        value={item.amount}
+                        onChange={(e) => updateItem(i, 'amount', e.target.value)}
+                        required
+                        placeholder="KES amount"
+                        className={`${inputClasses} w-32`}
+                      />
+                      {invoiceItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(i)}
+                          className="text-brick hover:opacity-70 text-2xs font-mono uppercase tracking-wider px-2 shrink-0"
+                        >
+                          Purge
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="text-sienna text-2xs font-mono uppercase tracking-widest hover:text-clay"
+                >
+                  + Add Line Component
+                </button>
+              </div>
+
+              {submitError && (
+                <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">
+                  {submitError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitStatus === 'submitting'}
+                className="bg-sienna text-sand px-6 py-3 rounded-xl font-mono uppercase tracking-wider text-2xs hover:bg-clay transition"
+              >
+                {submitStatus === 'submitting' ? 'Compiling Manifest...' : 'Compile Statement Parameters'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="text-xs font-mono text-charcoal/40 uppercase tracking-widest animate-pulse">
+            Querying audit parameters...
+          </div>
+        )}
+
+        {error && (
+          <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        {/* Payments View Tab */}
+        {activeTab === 'payments' && (
+          <div className="space-y-3">
+            {payments.length === 0 && !isLoading && (
+              <p className="text-xs font-mono uppercase tracking-wider text-charcoal/40 bg-white border border-clay/15 rounded-xl p-8 text-center">Zero matching balance streams detected.</p>
+            )}
+            {payments.map((p) => (
+              <div key={p.id} className="bg-white border border-clay/15 rounded-xl p-5 flex items-center justify-between gap-4 shadow-sm">
+                <div className="min-w-0 space-y-0.5">
+                  <h3 className="text-base font-light text-charcoal tracking-tight font-serif truncate">
+                    {p.property_title}
+                  </h3>
+                  <p className="text-[10px] font-mono text-charcoal/40 uppercase tracking-wider">
+                    {p.tenant_email} <span className="text-clay/20 mx-1">·</span> Allocation: {new Date(p.payment_for_month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </p>
-                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full inline-block mt-1 ${INVOICE_STATUS_STYLES[inv.status]}`} style={{ fontFamily: "'Inter', sans-serif" }}>
-                    {inv.status}
+                </div>
+                <div className="text-right shrink-0 space-y-1.5">
+                  <p className="text-sm font-mono text-charcoal tracking-tight">
+                    KSh {Number(p.total_amount).toLocaleString()}
+                  </p>
+                  <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border block ${PAYMENT_STATUS_STYLES[p.status]}`}>
+                    {p.status}
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => downloadFile(`/api/payments/invoices/${inv.id}/download/`, `NEST_Invoice_${inv.id}.pdf`)}
-                className="mt-3 text-sienna text-sm font-medium hover:text-clay"
-                style={{ fontFamily: "'Inter', sans-serif" }}
-              >
-                Download PDF
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+        {/* Invoices View Tab */}
+        {activeTab === 'invoices' && (
+          <div className="space-y-3">
+            {invoices.length === 0 && !isLoading && (
+              <p className="text-xs font-mono uppercase tracking-wider text-charcoal/40 bg-white border border-clay/15 rounded-xl p-8 text-center">Zero statements generated across open fiscal years.</p>
+            )}
+            {invoices.map((inv) => (
+              <div key={inv.id} className="bg-white border border-clay/15 rounded-xl p-5 shadow-sm space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-0.5">
+                    <h3 className="text-base font-light text-charcoal tracking-tight font-serif truncate">
+                      {inv.title}
+                    </h3>
+                    <p className="text-[10px] font-mono text-charcoal/40 uppercase tracking-wider">
+                      {inv.tenant_email} <span className="text-clay/20 mx-1">·</span> Term Bounds: Due {new Date(inv.due_date).toLocaleDateString()}
+                    </p>
+                    {inv.ai_summary && (
+                      <div className="pt-2">
+                        <p className="text-xs text-charcoal/60 italic font-sans font-light leading-relaxed">
+                          "{inv.ai_summary}"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 space-y-1.5">
+                    <p className="text-sm font-mono text-charcoal tracking-tight">
+                      KSh {Number(inv.total_amount).toLocaleString()}
+                    </p>
+                    <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border block ${INVOICE_STATUS_STYLES[inv.status]}`}>
+                      {inv.status}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t border-clay/5">
+                  <button
+                    onClick={() => downloadFile(`/api/payments/invoices/${inv.id}/download/`, `NEST_Invoice_${inv.id}.pdf`)}
+                    className="text-sienna text-2xs font-mono uppercase tracking-widest hover:text-clay transition"
+                  >
+                    [ Download Statement Manifest PDF ]
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
