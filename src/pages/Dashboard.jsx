@@ -55,7 +55,7 @@ function Dashboard() {
       if (paymentsRes.status === 'fulfilled') setPayments(paymentsRes.value.data)
       if (ticketsRes.status === 'fulfilled') setTickets(ticketsRes.value.data)
       if (invoicesRes.status === 'fulfilled') setInvoices(invoicesRes.value.data)
-    }).finally(() => setIsLoading(false))
+    ]).finally(() => setIsLoading(false))
   }, [])
 
   const firstName = user?.first_name || user?.email?.split('@')[0] || 'User'
@@ -67,38 +67,37 @@ function Dashboard() {
     <div className="min-h-screen bg-sand text-charcoal">
       <div className="max-w-6xl mx-auto px-8 py-16 space-y-12">
         
-        {/* Editorial Sub-Header & Greeting */}
+        {/* Simple Header & Greeting */}
         <header className="border-b border-clay/10 pb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40">
-              <span>Operational Node</span>
+              <span>Account Dashboard</span>
               <span className="w-1 h-1 rounded-full bg-sienna" />
-              <span>Active State</span>
+              <span>Live Status</span>
             </div>
             <h1 className="text-3xl text-charcoal font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
               Welcome back, <span className="italic text-sienna font-light">{firstName}</span>.
             </h1>
           </div>
           <p className="text-charcoal/40 font-mono text-[10px] tracking-widest md:text-right uppercase">
-            System Synchronization Complete
+            Everything up to date
           </p>
         </header>
 
         {isLoading ? (
           <div className="flex items-center gap-2.5 py-12 text-xs text-charcoal/50 font-mono tracking-wider uppercase">
             <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-clay" />
-            <span>Retrieving account configuration records...</span>
+            <span>Loading dashboard data...</span>
           </div>
         ) : (
           <div className="grid lg:grid-cols-3 gap-10 items-start">
             
-            {/* Primary Workspace Sections (Left Column Span) */}
+            {/* Primary Workspace Sections */}
             <div className="lg:col-span-2 space-y-10">
               
-              {/* Lease Status Architecture Banner */}
+              {/* Lease Status Banner */}
               {lease ? (
                 <div className="relative overflow-hidden bg-charcoal text-sand rounded-xl p-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-8">
-                  {/* Subtle clean architectural reference grid in backdrop */}
                   <div className="absolute right-0 bottom-0 top-0 opacity-[0.03] pointer-events-none w-1/2 select-none">
                     <svg className="w-full h-full object-cover" viewBox="0 0 100 100" fill="none" preserveAspectRatio="none">
                       <line x1="0" y1="100" x2="100" y2="0" stroke="#FFFFFF" strokeWidth="0.25"/>
@@ -108,13 +107,13 @@ function Dashboard() {
 
                   <div className="relative z-10 space-y-1.5">
                     <span className="inline-block text-[9px] font-mono uppercase tracking-widest bg-white/10 text-sand/80 px-2 py-0.5 rounded">
-                      Active Deployment Lease
+                      Active Lease
                     </span>
                     <h3 className="text-xl font-light tracking-tight leading-tight" style={{ fontFamily: "'Fraunces', serif" }}>
-                      Framework Contract · #{lease.property}
+                      Property Reference · #{lease.property}
                     </h3>
                     <p className="text-sand/50 text-xs font-light" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      Allocation sequence mapped to expire <span className="text-sand font-mono">{new Date(lease.end_date).toLocaleDateString()}</span>
+                      Your current lease agreement runs until <span className="text-sand font-mono">{new Date(lease.end_date).toLocaleDateString()}</span>
                     </p>
                   </div>
 
@@ -123,13 +122,13 @@ function Dashboard() {
                       to="/payments"
                       className="flex-1 sm:flex-none text-center bg-sienna text-sand px-5 py-2.5 rounded text-[10px] font-mono uppercase tracking-wider hover:bg-clay transition duration-200"
                     >
-                      Remit Rent
+                      Pay Rent
                     </Link>
                     <Link
                       to="/tickets"
                       className="flex-1 sm:flex-none text-center border border-sand/20 text-sand px-5 py-2.5 rounded text-[10px] font-mono uppercase tracking-wider hover:bg-white/5 transition duration-200"
                     >
-                      Log Incident
+                      Report an Issue
                     </Link>
                   </div>
                 </div>
@@ -137,17 +136,17 @@ function Dashboard() {
                 <div className="border border-dashed border-clay/20 bg-white/40 rounded-xl p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   <div className="space-y-1">
                     <h3 className="text-base text-charcoal font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
-                      No Managed Tenancy Found
+                      No Active Lease Found
                     </h3>
                     <p className="text-charcoal/50 text-xs font-light" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      Your system configuration has no active housing deployment mapped yet.
+                      You aren't currently registered to a property.
                     </p>
                   </div>
                   <Link
                     to="/properties"
                     className="bg-charcoal text-sand px-4 py-2.5 rounded text-[10px] font-mono uppercase tracking-wider hover:bg-sienna transition shrink-0"
                   >
-                    Explore Properties
+                    Browse Properties
                   </Link>
                 </div>
               )}
@@ -155,50 +154,50 @@ function Dashboard() {
               {/* Grid Metric Panel */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-[9px] font-mono uppercase tracking-widest text-charcoal/40">
-                  <span>System Telemetry Matrix</span>
+                  <span>Overview</span>
                   <div className="h-px bg-clay/10 flex-1" />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <StatCard
-                    label="Last Account Remittance"
+                    label="Last Payment"
                     value={lastPayment ? `KSh ${Number(lastPayment.total_amount).toLocaleString()}` : '—'}
-                    sub={lastPayment ? `Cleared on ${new Date(lastPayment.payment_date).toLocaleDateString()}` : 'No processing logs recorded'}
+                    sub={lastPayment ? `Paid on ${new Date(lastPayment.payment_date).toLocaleDateString()}` : 'No payment history yet'}
                     to="/payments"
                   />
                   <StatCard
-                    label="Outstanding Obligations"
-                    value={pendingInvoices.length > 0 ? pendingInvoices.length : 'Complete Clear'}
-                    sub={pendingInvoices.length > 0 ? `KSh ${Number(pendingInvoices.reduce((sum, i) => sum + Number(i.total_amount), 0)).toLocaleString()} cumulative balances` : 'Ledger balanced successfully'}
+                    label="Amount Due"
+                    value={pendingInvoices.length > 0 ? pendingInvoices.length : 'Fully Paid'}
+                    sub={pendingInvoices.length > 0 ? `KSh ${Number(pendingInvoices.reduce((sum, i) => sum + Number(i.total_amount), 0)).toLocaleString()} total balance` : 'Your account balance is clear'}
                     to="/payments"
                   />
                   <StatCard
-                    label="Active Incident Traces"
+                    label="Open Support Issues"
                     value={openTickets.length}
-                    sub={openTickets.length === 1 ? '1 unresolved fault track' : openTickets.length > 0 ? `${openTickets.length} exceptions logged` : 'Zero unresolved hardware exceptions'}
+                    sub={openTickets.length === 1 ? '1 issue needs attention' : openTickets.length > 0 ? `${openTickets.length} active tickets` : 'No open support tickets'}
                     to="/tickets"
                   />
                   <StatCard
-                    label="Onboarding Verification"
-                    value={lease ? 'Authorized' : 'Pending Step'}
-                    sub={lease ? 'Lease structure fully integrated' : 'Requires identity document verification step'}
+                    label="Account Status"
+                    value={lease ? 'Approved' : 'In Review'}
+                    sub={lease ? 'Your profile is fully linked' : 'Waiting on ID document verification'}
                     to="/applications"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Context Sidebar (Right Column) */}
+            {/* Context Sidebar */}
             <div className="space-y-8 lg:border-l lg:border-clay/10 lg:pl-8 lg:min-h-[420px]">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-widest text-charcoal/40">
-                    <span>Incident Traces</span>
+                    <span>Recent Issues</span>
                     {openTickets.length > 0 && (
                       <span className="w-1.5 h-1.5 rounded-full bg-brick animate-ping" />
                     )}
                   </div>
                   <Link to="/tickets" className="text-[10px] text-sienna hover:text-charcoal font-mono uppercase tracking-wider underline decoration-sienna/20 underline-offset-4">
-                    All logs →
+                    View all →
                   </Link>
                 </div>
 
@@ -230,25 +229,25 @@ function Dashboard() {
                 ) : (
                   <div className="bg-white/30 border border-dashed border-clay/15 rounded-xl p-6 text-center">
                     <p className="text-[10px] font-mono text-charcoal/40 uppercase tracking-widest">
-                      No Urgent Actions Flagged
+                      Everything looks good
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Secure Environment Metadata Block */}
+              {/* Secure Environment Information Block */}
               <div className="bg-clay/5 border border-clay/10 rounded-xl p-5 font-mono text-[9px] text-charcoal/40 space-y-2.5">
                 <div className="flex justify-between items-center">
-                  <span>DEPLOYMENT INSTANCE:</span>
+                  <span>SERVER INSTANCE:</span>
                   <span className="text-charcoal font-medium tracking-tight">NEST-PRD-01</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>ENCRYPTION ROUTE:</span>
-                  <span className="text-charcoal font-medium tracking-tight">AES-256 SYSTEM WIRE</span>
+                  <span>SECURITY:</span>
+                  <span className="text-charcoal font-medium tracking-tight">AES-256 SECURED</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>SUBSYSTEM LINK:</span>
-                  <span className="text-emerald-700 font-medium tracking-wider bg-emerald-50 border border-emerald-200/40 px-1.5 py-0.5 rounded text-[8px]">SECURE // ONLINE</span>
+                  <span>NETWORK LINK:</span>
+                  <span className="text-emerald-700 font-medium tracking-wider bg-emerald-50 border border-emerald-200/40 px-1.5 py-0.5 rounded text-[8px]">CONNECTED // SECURE</span>
                 </div>
               </div>
 

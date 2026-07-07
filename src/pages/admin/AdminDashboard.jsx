@@ -1,36 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { easing } from '../../utils/animations'
 import useAuthStore from '../../store/authStore'
 import apiClient from '../../api/client'
 
-function StatCard({ label, value, sub, to, dark }) {
-  const inner = (
-    <div className={`rounded-xl p-5 hover:shadow-md transition border ${
-      dark ? 'bg-charcoal/5 border-charcoal/10' : 'bg-white border-clay/15'
-    }`}>
-      <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-        {label}
-      </p>
-      <p className="text-2xl text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-        {value}
-      </p>
-      {sub && (
-        <p className="text-xs text-charcoal/40 mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-          {sub}
-        </p>
-      )}
-    </div>
+function StatCard({ label, value, sub, to }) {
+  return (
+    <Link to={to} className="block bg-white border border-clay/15 rounded-xl p-6 hover:border-sienna/30 transition shadow-sm">
+      <p className="text-[9px] font-mono uppercase tracking-widest text-charcoal/40 mb-2">{label}</p>
+      <p className="text-2xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>{value}</p>
+      {sub && <p className="text-[10px] text-charcoal/50 mt-3 border-t border-clay/5 pt-2">{sub}</p>}
+    </Link>
   )
-  return to ? <Link to={to}>{inner}</Link> : inner
 }
 
 function AdminDashboard() {
   const user = useAuthStore((state) => state.user)
   const [analytics, setAnalytics] = useState(null)
-  const [appeals, setAppeals] = useState([])
-  const [fraudReports, setFraudReports] = useState([])
+  const [pending, setPending] = useState({ appeals: [], fraud: [] })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -38,128 +24,54 @@ function AdminDashboard() {
       apiClient.get('/api/payments/analytics/'),
       apiClient.get('/api/moderation/appeals/'),
       apiClient.get('/api/moderation/fraud-reports/'),
-    ]).then(([analyticsRes, appealsRes, fraudRes]) => {
-      if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value.data)
-      if (appealsRes.status === 'fulfilled') setAppeals(appealsRes.value.data)
-      if (fraudRes.status === 'fulfilled') setFraudReports(fraudRes.value.data)
+    ]).then(([a, b, c]) => {
+      setAnalytics(a.value?.data); setPending({ appeals: b.value?.data || [], fraud: c.value?.data || [] })
     }).finally(() => setIsLoading(false))
   }, [])
 
-  const firstName = user?.first_name || 'Admin'
-  const pendingAppeals = appeals.filter((a) => a.status === 'PENDING')
-  const pendingFraud = fraudReports.filter((f) => f.status === 'PENDING')
-
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <h1
-        className="text-3xl text-charcoal mb-1"
-        style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-      >
-        Hello, {firstName}.
-      </h1>
-      <p className="text-charcoal/60 mb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
-        NEST platform overview.
-      </p>
-
-      {isLoading ? (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
-      ) : (
-        <>
-          {analytics && (
-            <>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <StatCard
-                  label="Total agencies"
-                  value={analytics.total_verified_agencies ?? '—'}
-                  sub="verified"
-                  to="/admin/agencies"
-                />
-                <StatCard
-                  label="Total properties"
-                  value={analytics.total_properties ?? '—'}
-                  sub={`${analytics.occupied_properties ?? 0} occupied`}
-                  to="/admin/agencies"
-                />
-                <StatCard
-                  label="Total collected"
-                  value={`KSh ${Number(analytics.total_collected || 0).toLocaleString()}`}
-                  sub="all time"
-                  to="/admin/payments"
-                />
-                <StatCard
-                  label="NEST commission"
-                  value={`KSh ${Number(analytics.nest_commission_earned || 0).toLocaleString()}`}
-                  sub="earned"
-                  to="/admin/payments"
-                />
-              </div>
-
-              {analytics.ai_insight && (
-                <div className="bg-white border border-clay/15 rounded-xl p-6 mb-8">
-                  <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    Platform insight
-                  </p>
-                  <p className="text-charcoal/70 italic text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    {analytics.ai_insight}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {(pendingAppeals.length > 0 || pendingFraud.length > 0) && (
-            <div className="bg-brick/5 border border-brick/20 rounded-xl p-5 mb-8">
-              <p className="text-sm font-medium text-brick mb-3" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Items needing attention
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {pendingAppeals.length > 0 && (
-                  <Link
-                    to="/admin/moderation"
-                    className="text-sm text-brick bg-white border border-brick/20 px-3 py-1.5 rounded-lg hover:bg-brick/5 transition"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {pendingAppeals.length} pending ban appeal{pendingAppeals.length !== 1 ? 's' : ''}
-                  </Link>
-                )}
-                {pendingFraud.length > 0 && (
-                  <Link
-                    to="/admin/moderation"
-                    className="text-sm text-brick bg-white border border-brick/20 px-3 py-1.5 rounded-lg hover:bg-brick/5 transition"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                  >
-                    {pendingFraud.length} pending fraud report{pendingFraud.length !== 1 ? 's' : ''}
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Link
-              to="/admin/agencies"
-              className="bg-sienna text-sand rounded-xl p-5 hover:bg-clay transition"
-            >
-              <p className="font-medium" style={{ fontFamily: "'Fraunces', serif" }}>Manage agencies</p>
-              <p className="text-sand/70 text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>Verify, suspend, penalize</p>
-            </Link>
-            <Link
-              to="/admin/users"
-              className="bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition"
-            >
-              <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>Manage users</p>
-              <p className="text-charcoal/50 text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>Ban, warn, delete</p>
-            </Link>
-            <Link
-              to="/admin/moderation"
-              className="bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition"
-            >
-              <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>Moderation</p>
-              <p className="text-charcoal/50 text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>Appeals, fraud, audit log</p>
-            </Link>
+    <div className="min-h-screen bg-sand text-charcoal py-16 px-8">
+      <div className="max-w-6xl mx-auto space-y-12">
+        <header className="flex justify-between items-end border-b border-clay/10 pb-8">
+          <div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40 mb-2">Admin Console</div>
+            <h1 className="text-3xl font-light" style={{ fontFamily: "'Fraunces', serif" }}>Welcome, {user?.first_name || 'Admin'}.</h1>
           </div>
-        </>
-      )}
+        </header>
+
+        {isLoading ? <div className="text-xs font-mono uppercase tracking-widest text-charcoal/40">Syncing System...</div> : (
+          <div className="grid lg:grid-cols-4 gap-6">
+            {analytics && (
+              <>
+                <StatCard label="Verified Agencies" value={analytics.total_verified_agencies} sub="Active status" to="/admin/agencies" />
+                <StatCard label="Total Properties" value={analytics.total_properties} sub={`${analytics.occupied_properties} occupied`} to="/admin/agencies" />
+                <StatCard label="Total Collected" value={`KSh ${Number(analytics.total_collected).toLocaleString()}`} sub="All time revenue" to="/admin/payments" />
+                <StatCard label="Platform Commission" value={`KSh ${Number(analytics.nest_commission_earned).toLocaleString()}`} sub="System intake" to="/admin/payments" />
+              </>
+            )}
+            
+            <div className="lg:col-span-4 bg-charcoal text-sand rounded-xl p-8 shadow-sm">
+              <div className="text-[9px] font-mono uppercase tracking-widest text-sand/40 mb-4">Platform Insights</div>
+              <p className="text-lg italic font-light font-serif">{analytics?.ai_insight || "System operating within nominal parameters."}</p>
+            </div>
+
+            <div className="lg:col-span-4 grid md:grid-cols-3 gap-6">
+              <Link to="/admin/agencies" className="bg-white border border-clay/15 rounded-xl p-6 hover:shadow-md transition">
+                <h3 className="font-serif text-lg mb-1">Agencies</h3>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-charcoal/40">Verification & Commissions</p>
+              </Link>
+              <Link to="/admin/users" className="bg-white border border-clay/15 rounded-xl p-6 hover:shadow-md transition">
+                <h3 className="font-serif text-lg mb-1">User Base</h3>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-charcoal/40">Accounts & Compliance</p>
+              </Link>
+              <Link to="/admin/moderation" className="bg-white border border-clay/15 rounded-xl p-6 hover:shadow-md transition">
+                <h3 className="font-serif text-lg mb-1">Moderation</h3>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-charcoal/40">Appeals & Fraud Detection</p>
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

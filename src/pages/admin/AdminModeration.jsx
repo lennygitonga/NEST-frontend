@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import apiClient from '../../api/client'
 
 const APPEAL_STATUS_STYLES = {
-  PENDING: 'bg-clay/10 text-clay',
-  APPROVED: 'bg-olive/10 text-olive',
-  DISMISSED: 'bg-charcoal/10 text-charcoal/50',
+  PENDING: 'border-clay/20 bg-clay/5 text-clay',
+  APPROVED: 'border-olive/20 bg-olive/5 text-olive',
+  DISMISSED: 'border-charcoal/20 bg-charcoal/5 text-charcoal/40',
 }
 
 const FRAUD_STATUS_STYLES = {
-  PENDING: 'bg-clay/10 text-clay',
-  REVIEWED: 'bg-sienna/10 text-sienna',
-  DISMISSED: 'bg-charcoal/10 text-charcoal/50',
-  ACTION_TAKEN: 'bg-olive/10 text-olive',
+  PENDING: 'border-clay/20 bg-clay/5 text-clay',
+  REVIEWED: 'border-sienna/20 bg-sienna/5 text-sienna',
+  DISMISSED: 'border-charcoal/20 bg-charcoal/5 text-charcoal/40',
+  ACTION_TAKEN: 'border-olive/20 bg-olive/5 text-olive',
 }
 
 const ACTION_LABELS = {
@@ -95,250 +95,231 @@ function AdminModeration() {
   const reviewedAppeals = appeals.filter((a) => a.status !== 'PENDING')
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <h1
-        className="text-3xl text-charcoal mb-2"
-        style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-      >
-        Moderation
-      </h1>
-      <p className="text-charcoal/60 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-        Manage ban appeals, fraud reports, and review the audit log.
-      </p>
+    <div className="min-h-screen bg-sand text-charcoal py-16 px-8">
+      <div className="max-w-4xl mx-auto space-y-12">
+        <header className="border-b border-clay/10 pb-8">
+          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40 mb-2">
+            <span>Admin Control</span>
+            <span className="w-1 h-1 rounded-full bg-sienna" />
+            <span>Moderation Desk</span>
+          </div>
+          <h1 className="text-3xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            Compliance & Enforcement
+          </h1>
+        </header>
 
-      <div className="flex gap-1 bg-white border border-clay/15 rounded-lg p-1 mb-8 w-fit">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition capitalize ${
-              activeTab === tab ? 'bg-sienna text-sand' : 'text-charcoal/60 hover:text-charcoal'
-            }`}
-            style={{ fontFamily: "'Inter', sans-serif" }}
-          >
-            {tab === 'fraud' ? 'Fraud reports' : tab === 'audit' ? 'Audit log' : 'Ban appeals'}
-            {tab === 'appeals' && pendingAppeals.length > 0 && (
-              <span className="ml-1.5 bg-brick text-white text-xs px-1.5 py-0.5 rounded-full">
-                {pendingAppeals.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+        {/* Tab Selection */}
+        <div className="flex gap-2 border-b border-clay/10 pb-px">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-4 px-1 text-[10px] font-mono uppercase tracking-[0.2em] relative transition-colors ${
+                activeTab === tab ? 'text-sienna font-semibold' : 'text-charcoal/40 hover:text-charcoal'
+              }`}
+            >
+              {tab === 'fraud' ? 'Fraud Reports' : tab === 'audit' ? 'Audit Log' : 'Ban Appeals'}
+              {tab === 'appeals' && pendingAppeals.length > 0 && (
+                <span className="ml-2 bg-brick text-white text-[9px] px-1.5 py-0.5 rounded-full font-mono tracking-normal">
+                  {pendingAppeals.length}
+                </span>
+              )}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-sienna" />
+              )}
+            </button>
+          ))}
+        </div>
 
-      {isLoading && (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
-      )}
+        {isLoading ? (
+          <div className="text-xs font-mono text-charcoal/40 uppercase tracking-widest animate-pulse">Syncing compliance registers...</div>
+        ) : (
+          <div className="space-y-6">
+            {/* APPEALS TAB */}
+            {activeTab === 'appeals' && (
+              <div className="space-y-12">
+                {appeals.length === 0 && (
+                  <div className="bg-white border border-clay/15 rounded-xl p-12 text-center">
+                    <p className="text-xs font-mono uppercase tracking-wider text-charcoal/40">No pending ban appeals recorded.</p>
+                  </div>
+                )}
 
-      {!isLoading && activeTab === 'appeals' && (
-        <div className="space-y-8">
-          {appeals.length === 0 && (
-            <div className="bg-white border border-clay/15 rounded-xl p-8 text-center">
-              <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>No ban appeals yet.</p>
-            </div>
-          )}
+                {pendingAppeals.length > 0 && (
+                  <div className="space-y-4">
+                    <h2 className="text-sm font-mono uppercase tracking-widest text-charcoal/50 mb-2">— Pending Review</h2>
+                    {pendingAppeals.map((appeal) => (
+                      <div key={appeal.id} className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal/40 block">Ticket Record</span>
+                            <h3 className="text-lg font-light tracking-tight mt-0.5" style={{ fontFamily: "'Fraunces', serif" }}>Appeal #{appeal.id}</h3>
+                            <p className="text-[10px] font-mono text-charcoal/40 mt-1">{new Date(appeal.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`text-[9px] font-mono uppercase tracking-widest px-2.5 py-1 rounded border ${APPEAL_STATUS_STYLES[appeal.status]}`}>
+                            {appeal.status}
+                          </span>
+                        </div>
 
-          {pendingAppeals.length > 0 && (
-            <div>
-              <h2 className="text-lg text-charcoal mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-                Pending
-              </h2>
-              <div className="space-y-4">
-                {pendingAppeals.map((appeal) => (
-                  <div key={appeal.id} className="bg-white border border-clay/15 rounded-xl p-5">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                          Appeal #{appeal.id}
-                        </p>
-                        <p className="text-charcoal/40 text-xs mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                          {new Date(appeal.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="border-l-2 border-clay/10 pl-4 py-1">
+                          <p className="text-charcoal/70 text-sm italic">"{appeal.message}"</p>
+                        </div>
+
+                        <div className="space-y-3 pt-4 border-t border-clay/5">
+                          <textarea
+                            value={responses[appeal.id] || ''}
+                            onChange={(e) => setResponses((prev) => ({ ...prev, [appeal.id]: e.target.value }))}
+                            rows={2}
+                            placeholder="Provide administrative tracking note or response rationale..."
+                            className="w-full p-3 rounded-lg border border-clay/15 bg-sand/20 text-charcoal text-xs font-mono focus:outline-none focus:border-clay transition resize-none placeholder:text-charcoal/30"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAppealReview(appeal.id, 'APPROVED')}
+                              disabled={acting[appeal.id]}
+                              className="text-[10px] font-mono uppercase tracking-wider bg-olive text-white px-4 py-2 rounded hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              {acting[appeal.id] === 'APPROVED' ? 'Processing...' : 'Approve & Unban'}
+                            </button>
+                            <button
+                              onClick={() => handleAppealReview(appeal.id, 'DISMISSED')}
+                              disabled={acting[appeal.id]}
+                              className="text-[10px] font-mono uppercase tracking-wider bg-brick text-white px-4 py-2 rounded hover:opacity-90 transition disabled:opacity-50"
+                            >
+                              {acting[appeal.id] === 'DISMISSED' ? 'Dismissing...' : 'Dismiss Appeal'}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${APPEAL_STATUS_STYLES[appeal.status]}`}
-                        style={{ fontFamily: "'Inter', sans-serif" }}
-                      >
-                        {appeal.status}
-                      </span>
-                    </div>
+                    ))}
+                  </div>
+                )}
 
-                    <p className="text-charcoal/70 text-sm italic mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-                      "{appeal.message}"
-                    </p>
-
-                    <div className="space-y-2">
-                      <textarea
-                        value={responses[appeal.id] || ''}
-                        onChange={(e) => setResponses((prev) => ({ ...prev, [appeal.id]: e.target.value }))}
-                        rows={2}
-                        placeholder="Admin response (optional)"
-                        className="w-full px-3 py-2 rounded-lg border border-clay/30 bg-white text-charcoal text-sm focus:outline-none focus:ring-2 focus:ring-clay transition resize-none"
-                        style={{ fontFamily: "'Inter', sans-serif" }}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAppealReview(appeal.id, 'APPROVED')}
-                          disabled={acting[appeal.id]}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-olive text-white font-medium hover:opacity-90 transition disabled:opacity-60"
-                          style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {acting[appeal.id] === 'APPROVED' ? 'Approving...' : 'Approve (unban)'}
-                        </button>
-                        <button
-                          onClick={() => handleAppealReview(appeal.id, 'DISMISSED')}
-                          disabled={acting[appeal.id]}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-brick text-white font-medium hover:opacity-90 transition disabled:opacity-60"
-                          style={{ fontFamily: "'Inter', sans-serif" }}
-                        >
-                          {acting[appeal.id] === 'DISMISSED' ? 'Dismissing...' : 'Dismiss'}
-                        </button>
-                      </div>
+                {reviewedAppeals.length > 0 && (
+                  <div className="space-y-4">
+                    <h2 className="text-sm font-mono uppercase tracking-widest text-charcoal/50 mb-2">— Historical Records</h2>
+                    <div className="space-y-3">
+                      {reviewedAppeals.map((appeal) => (
+                        <div key={appeal.id} className="bg-white border border-clay/15 rounded-xl p-5 shadow-sm opacity-75 hover:opacity-100 transition-opacity">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="font-mono text-xs text-charcoal/60">
+                              <span className="text-charcoal font-semibold">Appeal #{appeal.id}</span> · {new Date(appeal.created_at).toLocaleDateString()}
+                            </div>
+                            <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded border ${APPEAL_STATUS_STYLES[appeal.status]}`}>
+                              {appeal.status}
+                            </span>
+                          </div>
+                          {appeal.admin_response && (
+                            <p className="text-charcoal/50 text-[11px] font-mono mt-3 pt-2 border-t border-clay/5 bg-sand/30 p-2 rounded">
+                              <span className="text-charcoal/70 uppercase text-[9px] font-bold tracking-wider block mb-0.5">Admin Response:</span>
+                              {appeal.admin_response}
+                            </p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {reviewedAppeals.length > 0 && (
-            <div>
-              <h2 className="text-lg text-charcoal mb-3" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-                Reviewed
-              </h2>
-              <div className="space-y-3">
-                {reviewedAppeals.map((appeal) => (
-                  <div key={appeal.id} className="bg-white border border-clay/15 rounded-xl p-5 opacity-70">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="text-charcoal text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        Appeal #{appeal.id} · {new Date(appeal.created_at).toLocaleDateString()}
-                      </p>
-                      <span
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ${APPEAL_STATUS_STYLES[appeal.status]}`}
-                        style={{ fontFamily: "'Inter', sans-serif" }}
-                      >
-                        {appeal.status}
+            {/* FRAUD TAB */}
+            {activeTab === 'fraud' && (
+              <div className="space-y-4">
+                {fraudReports.length === 0 && (
+                  <div className="bg-white border border-clay/15 rounded-xl p-12 text-center">
+                    <p className="text-xs font-mono uppercase tracking-wider text-charcoal/40">No fraud notifications pending evaluation.</p>
+                  </div>
+                )}
+                {fraudReports.map((report) => (
+                  <div key={report.id} className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm space-y-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-charcoal/40 block">System Report</span>
+                        <h3 className="text-lg font-light tracking-tight mt-0.5" style={{ fontFamily: "'Fraunces', serif" }}>Report #{report.id}</h3>
+                        <p className="text-[10px] font-mono text-charcoal/40 mt-1">{new Date(report.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <span className={`text-[9px] font-mono uppercase tracking-widest px-2.5 py-1 rounded border ${FRAUD_STATUS_STYLES[report.status]}`}>
+                        {report.status.replace('_', ' ')}
                       </span>
                     </div>
-                    {appeal.admin_response && (
-                      <p className="text-charcoal/50 text-xs mt-2 italic" style={{ fontFamily: "'Inter', sans-serif" }}>
-                        Response: {appeal.admin_response}
+
+                    <p className="text-charcoal/80 text-sm font-light leading-relaxed">{report.reason}</p>
+
+                    {report.status === 'PENDING' && (
+                      <div className="space-y-3 pt-4 border-t border-clay/5">
+                        <textarea
+                          value={fraudNotes[report.id] || ''}
+                          onChange={(e) => setFraudNotes((prev) => ({ ...prev, [report.id]: e.target.value }))}
+                          rows={2}
+                          placeholder="Internal administrative intelligence notes..."
+                          className="w-full p-3 rounded-lg border border-clay/15 bg-sand/20 text-charcoal text-xs font-mono focus:outline-none focus:border-clay transition resize-none placeholder:text-charcoal/30"
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleFraudReview(report.id, 'ACTION_TAKEN')}
+                            disabled={acting[`fraud_${report.id}`]}
+                            className="text-[10px] font-mono uppercase tracking-wider bg-brick text-white px-4 py-2 rounded hover:opacity-90 transition disabled:opacity-50"
+                          >
+                            {acting[`fraud_${report.id}`] === 'ACTION_TAKEN' ? 'Processing...' : 'Enforce Action'}
+                          </button>
+                          <button
+                            onClick={() => handleFraudReview(report.id, 'REVIEWED')}
+                            disabled={acting[`fraud_${report.id}`]}
+                            className="text-[10px] font-mono uppercase tracking-wider bg-sienna text-sand px-4 py-2 rounded hover:opacity-90 transition disabled:opacity-50"
+                          >
+                            {acting[`fraud_${report.id}`] === 'REVIEWED' ? 'Marking...' : 'Mark Reviewed'}
+                          </button>
+                          <button
+                            onClick={() => handleFraudReview(report.id, 'DISMISSED')}
+                            disabled={acting[`fraud_${report.id}`]}
+                            className="text-[10px] font-mono uppercase tracking-wider border border-clay/20 text-charcoal/60 px-4 py-2 rounded hover:bg-clay/5 transition disabled:opacity-50"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {report.admin_notes && (
+                      <p className="text-charcoal/50 text-[11px] font-mono mt-3 pt-2 border-t border-clay/5 bg-sand/30 p-2 rounded">
+                        <span className="text-charcoal/70 uppercase text-[9px] font-bold tracking-wider block mb-0.5">Internal Audit Notes:</span>
+                        {report.admin_notes}
                       </p>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
 
-      {!isLoading && activeTab === 'fraud' && (
-        <div className="space-y-4">
-          {fraudReports.length === 0 && (
-            <div className="bg-white border border-clay/15 rounded-xl p-8 text-center">
-              <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>No fraud reports yet.</p>
-            </div>
-          )}
-          {fraudReports.map((report) => (
-            <div key={report.id} className="bg-white border border-clay/15 rounded-xl p-5">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                    Report #{report.id}
-                  </p>
-                  <p className="text-charcoal/40 text-xs mt-0.5" style={{ fontFamily: "'Inter', sans-serif" }}>
-                    {new Date(report.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <span
-                  className={`text-xs font-medium px-2.5 py-1 rounded-full ${FRAUD_STATUS_STYLES[report.status]}`}
-                  style={{ fontFamily: "'Inter', sans-serif" }}
-                >
-                  {report.status.replace('_', ' ')}
-                </span>
-              </div>
-
-              <p className="text-charcoal/70 text-sm mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {report.reason}
-              </p>
-
-              {report.status === 'PENDING' && (
-                <div className="space-y-2">
-                  <textarea
-                    value={fraudNotes[report.id] || ''}
-                    onChange={(e) => setFraudNotes((prev) => ({ ...prev, [report.id]: e.target.value }))}
-                    rows={2}
-                    placeholder="Admin notes (optional)"
-                    className="w-full px-3 py-2 rounded-lg border border-clay/30 bg-white text-charcoal text-sm focus:outline-none focus:ring-2 focus:ring-clay transition resize-none"
-                    style={{ fontFamily: "'Inter', sans-serif" }}
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleFraudReview(report.id, 'ACTION_TAKEN')}
-                      disabled={acting[`fraud_${report.id}`]}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-brick text-white font-medium hover:opacity-90 transition disabled:opacity-60"
-                      style={{ fontFamily: "'Inter', sans-serif" }}
-                    >
-                      {acting[`fraud_${report.id}`] === 'ACTION_TAKEN' ? 'Processing...' : 'Take action'}
-                    </button>
-                    <button
-                      onClick={() => handleFraudReview(report.id, 'REVIEWED')}
-                      disabled={acting[`fraud_${report.id}`]}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-sienna text-sand font-medium hover:bg-clay transition disabled:opacity-60"
-                      style={{ fontFamily: "'Inter', sans-serif" }}
-                    >
-                      {acting[`fraud_${report.id}`] === 'REVIEWED' ? 'Marking...' : 'Mark reviewed'}
-                    </button>
-                    <button
-                      onClick={() => handleFraudReview(report.id, 'DISMISSED')}
-                      disabled={acting[`fraud_${report.id}`]}
-                      className="text-xs px-3 py-1.5 rounded-lg border border-clay/30 text-charcoal/60 hover:bg-clay/5 transition disabled:opacity-60"
-                      style={{ fontFamily: "'Inter', sans-serif" }}
-                    >
-                      Dismiss
-                    </button>
+            {/* AUDIT LOG TAB */}
+            {activeTab === 'audit' && (
+              <div className="space-y-2">
+                {auditLog.length === 0 && (
+                  <div className="bg-white border border-clay/15 rounded-xl p-12 text-center">
+                    <p className="text-xs font-mono uppercase tracking-wider text-charcoal/40">No modification audit instances logged.</p>
                   </div>
-                </div>
-              )}
-
-              {report.admin_notes && (
-                <p className="text-charcoal/50 text-xs mt-2 italic" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Notes: {report.admin_notes}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!isLoading && activeTab === 'audit' && (
-        <div className="space-y-2">
-          {auditLog.length === 0 && (
-            <div className="bg-white border border-clay/15 rounded-xl p-8 text-center">
-              <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>No audit log entries yet.</p>
-            </div>
-          )}
-          {auditLog.map((entry) => (
-            <div
-              key={entry.id}
-              className="bg-white border border-clay/15 rounded-xl px-5 py-4 flex items-center justify-between gap-4"
-            >
-              <div className="min-w-0">
-                <p className="text-charcoal text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {ACTION_LABELS[entry.action_type] || entry.action_type}
-                </p>
-                <p className="text-charcoal/50 text-xs mt-0.5 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {entry.reason}
-                </p>
+                )}
+                {auditLog.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="bg-white border border-clay/15 rounded-xl px-6 py-4 flex items-center justify-between gap-6 shadow-sm"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-mono uppercase tracking-widest px-1.5 py-0.5 bg-charcoal text-sand rounded mb-1.5 inline-block">
+                        {ACTION_LABELS[entry.action_type] || entry.action_type}
+                      </span>
+                      <p className="text-charcoal/60 text-xs font-mono truncate">{entry.reason || 'No justification attached.'}</p>
+                    </div>
+                    <p className="text-charcoal/40 text-[10px] font-mono shrink-0 whitespace-nowrap">
+                      {new Date(entry.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
               </div>
-              <p className="text-charcoal/40 text-xs shrink-0" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {new Date(entry.created_at).toLocaleString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
