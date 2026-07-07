@@ -8,26 +8,26 @@ import apiClient from '../../api/client'
 function StatCard({ label, value, sub, to }) {
   const inner = (
     <motion.div
-      className="bg-white border border-clay/15 rounded-xl p-5"
+      className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(34,31,28,0.08)' }}
+      whileHover={{ y: -2, boxShadow: '0 12px 30px rgba(34,31,28,0.04)' }}
       transition={{ duration: 0.2, ease: easing }}
     >
-      <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-charcoal/40 mb-2">
         {label}
       </p>
-      <p className="text-2xl text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
+      <p className="text-3xl font-light tracking-tight text-charcoal" style={{ fontFamily: "'Fraunces', serif" }}>
         {value}
       </p>
       {sub && (
-        <p className="text-xs text-charcoal/40 mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <p className="text-xs font-mono text-charcoal/40 mt-2 pt-2 border-t border-clay/5">
           {sub}
         </p>
       )}
     </motion.div>
   )
-  return to ? <Link to={to}>{inner}</Link> : inner
+  return to ? <Link to={to} className="block">{inner}</Link> : inner
 }
 
 function LandlordDashboard() {
@@ -60,85 +60,104 @@ function LandlordDashboard() {
   const vacantProperties = properties.filter((p) => p.is_vacant)
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      <h1
-        className="text-3xl text-charcoal mb-1"
-        style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}
-      >
-        Hello, {firstName}.
-      </h1>
-      <p className="text-charcoal/60 mb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
-        Here's an overview of your portfolio.
-      </p>
-
-      {isLoading ? (
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
-      ) : (
-        <>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-            <StatCard
-              label="Total properties"
-              value={properties.length}
-              sub={`${vacantProperties.length} vacant`}
-              to="/landlord/properties"
-            />
-            <StatCard
-              label="Active leases"
-              value={activeLeases.length}
-              sub="current tenants"
-              to="/landlord/leases"
-            />
-            <StatCard
-              label="Total collected"
-              value={`KSh ${totalCollected.toLocaleString()}`}
-              sub="completed payments"
-              to="/landlord/payments"
-            />
-            <StatCard
-              label="Vacant"
-              value={vacantProperties.length}
-              sub="available properties"
-              to="/landlord/properties"
-            />
+    <div className="min-h-screen bg-sand text-charcoal py-16 px-8">
+      <div className="max-w-5xl mx-auto space-y-12">
+        
+        {/* Header Block */}
+        <header className="border-b border-clay/10 pb-8">
+          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40 mb-2">
+            <span>Portfolio Node</span>
+            <span className="w-1 h-1 rounded-full bg-olive" />
+            <span>Overview Matrix</span>
           </div>
+          <h1 className="text-3xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            Hello, {firstName}.
+          </h1>
+          <p className="text-xs font-mono text-charcoal/50 mt-1">
+            System indexing architecture overview of your complete asset distribution.
+          </p>
+        </header>
 
-          {analytics?.ai_insight && (
-            <div className="bg-white border border-clay/15 rounded-xl p-6 mb-8">
-              <p className="text-xs text-charcoal/50 uppercase tracking-wide mb-2" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Portfolio insight
-              </p>
-              <p className="text-charcoal/70 italic text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {analytics.ai_insight}
-              </p>
+        {isLoading ? (
+          <div className="text-xs font-mono text-charcoal/40 uppercase tracking-widest animate-pulse">
+            Re-indexing real estate configurations...
+          </div>
+        ) : (
+          <>
+            {/* Grid Metrics */}
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                label="Total Portfolio Assets"
+                value={properties.length}
+                sub={`${vacantProperties.length} vacancies mapped`}
+                to="/landlord/properties"
+              />
+              <StatCard
+                label="Active Covenants"
+                value={activeLeases.length}
+                sub="Occupied tenancy nodes"
+                to="/landlord/leases"
+              />
+              <StatCard
+                label="Aggregate Clearing"
+                value={`KSh ${totalCollected.toLocaleString()}`}
+                sub="Completed settlements"
+                to="/landlord/payments"
+              />
+              <StatCard
+                label="Vacant Modules"
+                value={vacantProperties.length}
+                sub="Immediate vacancy listings"
+                to="/landlord/properties"
+              />
             </div>
-          )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Link
-              to="/landlord/properties"
-              className="bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition"
-            >
-              <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                Your properties
-              </p>
-              <p className="text-charcoal/50 text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {properties.length} total · {vacantProperties.length} vacant
-              </p>
-            </Link>
-            <Link
-              to="/landlord/leases"
-              className="bg-white border border-clay/15 rounded-xl p-5 hover:shadow-md transition"
-            >
-              <p className="text-charcoal font-medium" style={{ fontFamily: "'Fraunces', serif" }}>
-                Active leases
-              </p>
-              <p className="text-charcoal/50 text-sm mt-1" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {activeLeases.length} active lease{activeLeases.length !== 1 ? 's' : ''}
-              </p>
-            </Link>
-          </div>
-        </>
-      )}
+            {/* AI Insights Engine Output */}
+            {analytics?.ai_insight && (
+              <div className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-1.5 h-1.5 bg-sienna rounded-full animate-pulse" />
+                  <p className="text-[9px] font-mono uppercase tracking-widest text-charcoal/40">
+                    Automated System Intelligence Insight
+                  </p>
+                </div>
+                <p className="text-sm text-charcoal/80 font-light leading-relaxed italic" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  "{analytics.ai_insight}"
+                </p>
+              </div>
+            )}
+
+            {/* Navigational Secondary Modules */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Link
+                to="/landlord/properties"
+                className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm hover:border-clay/30 transition group"
+              >
+                <span className="text-[9px] font-mono uppercase tracking-wider text-charcoal/40 block">Structure Allocation</span>
+                <p className="text-xl font-light tracking-tight text-charcoal mt-1 group-hover:text-sienna transition" style={{ fontFamily: "'Fraunces', serif" }}>
+                  Your Asset Registries
+                </p>
+                <p className="text-xs font-mono text-charcoal/40 mt-3 pt-3 border-t border-clay/5">
+                  {properties.length} active metrics · {vacantProperties.length} detached structures open
+                </p>
+              </Link>
+
+              <Link
+                to="/landlord/leases"
+                className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm hover:border-clay/30 transition group"
+              >
+                <span className="text-[9px] font-mono uppercase tracking-wider text-charcoal/40 block">Legal Structuring</span>
+                <p className="text-xl font-light tracking-tight text-charcoal mt-1 group-hover:text-sienna transition" style={{ fontFamily: "'Fraunces', serif" }}>
+                  Active Lease Covenants
+                </p>
+                <p className="text-xs font-mono text-charcoal/40 mt-3 pt-3 border-t border-clay/5">
+                  {activeLeases.length} synchronous framework{activeLeases.length !== 1 ? 's' : ''} established
+                </p>
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

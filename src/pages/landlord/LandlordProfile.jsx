@@ -1,21 +1,30 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import apiClient from '../../api/client'
+import { useState, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
+import { easing } from '../../utils/animations'
 import useAuthStore from '../../store/authStore'
+import apiClient from '../../api/client'
 
-function SectionCard({ title, children }) {
+function SectionCard({ title, subtitle, children }) {
   return (
-    <div className="bg-white border border-clay/15 rounded-xl p-6 mb-6">
-      <h2 className="text-lg text-charcoal mb-4" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-        {title}
-      </h2>
-      {children}
+    <div className="bg-white border border-clay/15 rounded-xl p-6 shadow-sm space-y-6">
+      <div>
+        <h2 className="text-lg font-light tracking-tight text-charcoal" style={{ fontFamily: "'Fraunces', serif" }}>
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-xs font-mono text-charcoal/40 mt-1 uppercase tracking-wider">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      <div className="pt-2 border-t border-clay/5">
+        {children}
+      </div>
     </div>
   )
 }
 
 function LandlordProfile() {
-  const navigate = useNavigate()
   const setUser = useAuthStore((state) => state.setUser)
 
   const [profile, setProfile] = useState(null)
@@ -23,6 +32,7 @@ function LandlordProfile() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
+  
   const [infoStatus, setInfoStatus] = useState('idle')
   const [infoError, setInfoError] = useState('')
   const [oldPassword, setOldPassword] = useState('')
@@ -38,19 +48,29 @@ function LandlordProfile() {
   const [deleteError, setDeleteError] = useState('')
   const [deletionStatus, setDeletionStatus] = useState(null)
 
-  useEffect(() => {
-    apiClient.get('/api/auth/profile/')
-      .then((response) => {
-        setProfile(response.data)
-        setFirstName(response.data.first_name || '')
-        setLastName(response.data.last_name || '')
-        setPhone(response.data.profile?.phone_number || '')
-      })
-      .finally(() => setIsLoading(false))
+  const infoTimeoutRef = useRef(null)
+  const passwordTimeoutRef = useRef(null)
 
-    apiClient.get('/api/auth/account/deletion-status/')
-      .then((response) => setDeletionStatus(response.data))
-      .catch(() => {})
+  useEffect(() => {
+    Promise.allSettled([
+      apiClient.get('/api/auth/profile/'),
+      apiClient.get('/api/auth/account/deletion-status/'),
+    ]).then(([profileRes, deletionRes]) => {
+      if (profileRes.status === 'fulfilled') {
+        setProfile(profileRes.value.data)
+        setFirstName(profileRes.value.data.first_name || '')
+        setLastName(profileRes.value.data.last_name || '')
+        setPhone(profileRes.value.data.profile?.phone_number || '')
+      }
+      if (deletionRes.status === 'fulfilled') {
+        setDeletionStatus(deletionRes.value.data)
+      }
+    }).finally(() => setIsLoading(false))
+
+    return () => {
+      if (infoTimeoutRef.current) clearTimeout(infoTimeoutRef.current)
+      if (passwordTimeoutRef.current) clearTimeout(passwordTimeoutRef.current)
+    }
   }, [])
 
   const handleInfoSubmit = async (e) => {
@@ -65,9 +85,9 @@ function LandlordProfile() {
       })
       setUser(response.data.user)
       setInfoStatus('success')
-      setTimeout(() => setInfoStatus('idle'), 2000)
+      infoTimeoutRef.current = setTimeout(() => setInfoStatus('idle'), 2000)
     } catch (err) {
-      setInfoError(err.response?.data?.error || 'Could not update your details.')
+      setInfoError(err.response?.data?.error || 'Could not update profile node mappings.')
       setInfoStatus('error')
     }
   }
@@ -84,10 +104,10 @@ function LandlordProfile() {
       setOldPassword('')
       setNewPassword('')
       setPasswordStatus('success')
-      setTimeout(() => setPasswordStatus('idle'), 2000)
+      passwordTimeoutRef.current = setTimeout(() => setPasswordStatus('idle'), 2000)
     } catch (err) {
       const data = err.response?.data
-      setPasswordError(data?.error || data?.old_password?.[0] || 'Could not change password.')
+      setPasswordError(data?.error || data?.old_password?.[0] || 'Security mismatch exception.')
       setPasswordStatus('error')
     }
   }
@@ -104,7 +124,7 @@ function LandlordProfile() {
       setEmailPassword('')
       setEmailStatus('success')
     } catch (err) {
-      setEmailError(err.response?.data?.error || 'Could not change email.')
+      setEmailError(err.response?.data?.error || 'Communication channel updates dropped.')
       setEmailStatus('error')
     }
   }
@@ -121,7 +141,7 @@ function LandlordProfile() {
       setDeletionStatus({ is_pending_deletion: true, deletion_date: response.data.deletion_date })
       setDeleteStatus('idle')
     } catch (err) {
-      setDeleteError(err.response?.data?.error || 'Could not process this request.')
+      setDeleteError(err.response?.data?.error || 'Pipeline purge execution failed.')
       setDeleteStatus('error')
     }
   }
@@ -131,131 +151,142 @@ function LandlordProfile() {
       await apiClient.post('/api/auth/account/delete-cancel/')
       setDeletionStatus({ is_pending_deletion: false })
     } catch {
-      // ignore
+      // Swallowed silently safely
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <p className="text-charcoal/60" style={{ fontFamily: "'Inter', sans-serif" }}>Loading...</p>
-      </div>
-    )
-  }
+  const inputClasses = "w-full px-4 py-3 rounded-xl border border-clay/15 bg-sand/30 text-charcoal focus:outline-none focus:border-clay/40 focus:bg-white transition text-sm font-sans"
+  const labelClasses = "block text-[9px] font-mono uppercase tracking-widest text-charcoal/40 mb-2"
+  const buttonClasses = "bg-sienna text-sand px-6 py-3 rounded-xl font-mono uppercase tracking-wider text-2xs hover:bg-clay transition disabled:opacity-40"
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <h1 className="text-3xl text-charcoal mb-2" style={{ fontFamily: "'Fraunces', serif", fontWeight: 500 }}>
-        Profile and settings
-      </h1>
-      <p className="text-charcoal/60 mb-8">Manage your account details and security.</p>
-
-      {deletionStatus?.is_pending_deletion && (
-        <div className="bg-brick/10 border border-brick/20 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
-          <p className="text-sm text-brick">
-            Your account is scheduled for deletion on {new Date(deletionStatus.deletion_date).toLocaleDateString()}.
+    <div className="min-h-screen bg-sand text-charcoal py-16 px-8">
+      <div className="max-w-2xl mx-auto space-y-12">
+        
+        {/* Header Block */}
+        <header className="border-b border-clay/10 pb-8">
+          <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.25em] text-charcoal/40 mb-2">
+            <span>Identity Core</span>
+            <span className="w-1 h-1 rounded-full bg-sienna" />
+            <span>Security Configurations</span>
+          </div>
+          <h1 className="text-3xl font-light tracking-tight" style={{ fontFamily: "'Fraunces', serif" }}>
+            Profile & Settings
+          </h1>
+          <p className="text-xs font-mono text-charcoal/50 mt-1">
+            System parameter overrides for administrative credentials and asset linkages.
           </p>
-          <button onClick={handleCancelDeletion} className="shrink-0 text-sm font-medium text-brick underline hover:no-underline">
-            Cancel
-          </button>
-        </div>
-      )}
+        </header>
 
-      <SectionCard title="Personal information">
-        <form onSubmit={handleInfoSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">First name</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">Last name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Phone number</label>
-            <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX"
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal placeholder:text-charcoal/30 focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-          </div>
-          {infoError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{infoError}</div>}
-          {infoStatus === 'success' && <div className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">Saved.</div>}
-          <button type="submit" disabled={infoStatus === 'submitting'}
-            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm">
-            {infoStatus === 'submitting' ? 'Saving...' : 'Save changes'}
-          </button>
-        </form>
-      </SectionCard>
-
-      <SectionCard title="Email address">
-        <p className="text-sm text-charcoal/60 mb-4">Current email: {profile?.email}</p>
-        {emailStatus === 'success' ? (
-          <p className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">
-            Email updated. Please verify your new address.
-          </p>
-        ) : (
-          <form onSubmit={handleEmailSubmit} className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">New email</label>
-              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">Current password</label>
-              <input type="password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} required
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-            </div>
-            {emailError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{emailError}</div>}
-            <button type="submit" disabled={emailStatus === 'submitting'}
-              className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm">
-              {emailStatus === 'submitting' ? 'Updating...' : 'Update email'}
+        {deletionStatus?.is_pending_deletion && (
+          <div className="bg-brick/5 border border-brick/20 rounded-xl p-5 flex items-center justify-between gap-4">
+            <p className="text-xs font-mono text-brick uppercase tracking-wider leading-relaxed">
+              Account purge execution scheduled on: {new Date(deletionStatus.deletion_date).toLocaleDateString()}
+            </p>
+            <button onClick={handleCancelDeletion} className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-brick underline hover:no-underline">
+              Halt Deletion
             </button>
-          </form>
+          </div>
         )}
-      </SectionCard>
 
-      <SectionCard title="Password">
-        <form onSubmit={handlePasswordSubmit} className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">Current password</label>
-            <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
+        {isLoading ? (
+          <div className="text-xs font-mono text-charcoal/40 uppercase tracking-widest animate-pulse">
+            De-serializing credential nodes...
           </div>
-          <div>
-            <label className="block text-sm font-medium text-charcoal mb-1.5">New password</label>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8}
-              className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-          </div>
-          {passwordError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{passwordError}</div>}
-          {passwordStatus === 'success' && <div className="text-sm text-olive bg-olive/10 border border-olive/20 rounded-lg px-3 py-2">Password changed.</div>}
-          <button type="submit" disabled={passwordStatus === 'submitting'}
-            className="bg-sienna text-sand px-5 py-2.5 rounded-lg font-medium hover:bg-clay transition disabled:opacity-60 text-sm">
-            {passwordStatus === 'submitting' ? 'Changing...' : 'Change password'}
-          </button>
-        </form>
-      </SectionCard>
-
-      <SectionCard title="Delete account">
-        {deletionStatus?.is_pending_deletion ? (
-          <p className="text-sm text-charcoal/60">Your account deletion is already scheduled. Cancel it using the banner above.</p>
         ) : (
-          <form onSubmit={handleDeleteRequest} className="space-y-3">
-            <p className="text-sm text-charcoal/60">Deleting your account starts a 7-day grace period during which you can cancel.</p>
-            <div>
-              <label className="block text-sm font-medium text-charcoal mb-1.5">Confirm with your password</label>
-              <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} required
-                className="w-full px-3 py-2.5 rounded-lg border border-clay/30 bg-white text-charcoal focus:outline-none focus:ring-2 focus:ring-clay transition text-sm" />
-            </div>
-            {deleteError && <div className="text-sm text-brick bg-brick/10 border border-brick/20 rounded-lg px-3 py-2">{deleteError}</div>}
-            <button type="submit" disabled={deleteStatus === 'submitting'}
-              className="bg-brick text-sand px-5 py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-60 text-sm">
-              {deleteStatus === 'submitting' ? 'Processing...' : 'Request account deletion'}
-            </button>
-          </form>
+          <div className="space-y-6">
+            
+            {/* Personal Info */}
+            <SectionCard title="Identity Metadata" subtitle="Core Contact Matrix">
+              <form onSubmit={handleInfoSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelClasses}>Given Title (First)</label>
+                    <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={inputClasses} />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Surname (Last)</label>
+                    <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className={inputClasses} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClasses}>Remittance Target Phone</label>
+                  <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX" className={inputClasses} />
+                </div>
+                {infoError && <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">{infoError}</div>}
+                {infoStatus === 'success' && <div className="text-2xs font-mono uppercase border border-olive/20 bg-olive/5 text-olive px-4 py-2.5 rounded-lg">State Saved Synchronously.</div>}
+                <button type="submit" disabled={infoStatus === 'submitting'} className={buttonClasses}>
+                  {infoStatus === 'submitting' ? 'Saving...' : 'Commit Mutation'}
+                </button>
+              </form>
+            </SectionCard>
+
+            {/* Email Updating */}
+            <SectionCard title="Communications Routing" subtitle={`Index Route: ${profile?.email}`}>
+              {emailStatus === 'success' ? (
+                <p className="text-xs font-mono text-olive uppercase border border-olive/10 bg-olive/5 p-4 rounded-xl">
+                  Channel mutation triggered. Validate parameters via your new address node.
+                </p>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div>
+                    <label className={labelClasses}>New Vector Email</label>
+                    <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required className={inputClasses} />
+                  </div>
+                  <div>
+                    <label className={labelClasses}>Verify Current Signature Password</label>
+                    <input type="password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} required className={inputClasses} />
+                  </div>
+                  {emailError && <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">{emailError}</div>}
+                  <button type="submit" disabled={emailStatus === 'submitting'} className={buttonClasses}>
+                    {emailStatus === 'submitting' ? 'Updating...' : 'Mutate Routing Route'}
+                  </button>
+                </form>
+              )}
+            </SectionCard>
+
+            {/* Password Updating */}
+            <SectionCard title="Cryptographic Access Signature" subtitle="Rotational Cryptography Layer">
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className={labelClasses}>Legacy Token Password</label>
+                  <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} required className={inputClasses} />
+                </div>
+                <div>
+                  <label className={labelClasses}>Target Generation Token</label>
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} className={inputClasses} />
+                </div>
+                {passwordError && <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">{passwordError}</div>}
+                {passwordStatus === 'success' && <div className="text-2xs font-mono uppercase border border-olive/20 bg-olive/5 text-olive px-4 py-2.5 rounded-lg">Cryptography Rotated Successfully.</div>}
+                <button type="submit" disabled={passwordStatus === 'submitting'} className={buttonClasses}>
+                  {passwordStatus === 'submitting' ? 'Rotating...' : 'Rotate Signatures'}
+                </button>
+              </form>
+            </SectionCard>
+
+            {/* Account Purge */}
+            <SectionCard title="Structural Pipeline Deprecation" subtitle="Danger Zone">
+              {deletionStatus?.is_pending_deletion ? (
+                <p className="text-xs font-mono text-charcoal/40 uppercase">Purge queue actively watching. Process holds for the remaining grace context.</p>
+              ) : (
+                <form onSubmit={handleDeleteRequest} className="space-y-4">
+                  <p className="text-xs font-mono text-charcoal/50 normal-case leading-relaxed">
+                    Triggering a destruction request begins a 7-day computational grace parameter cycle context before irreversible execution.
+                  </p>
+                  <div>
+                    <label className={labelClasses}>Confirm Verification Token Password</label>
+                    <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} required className={inputClasses} />
+                  </div>
+                  {deleteError && <div className="text-2xs font-mono uppercase border border-brick/20 bg-brick/5 text-brick px-4 py-2.5 rounded-lg">{deleteError}</div>}
+                  <button type="submit" disabled={deleteStatus === 'submitting'} className="bg-brick text-sand px-6 py-3 rounded-xl font-mono uppercase tracking-wider text-2xs hover:bg-brick/80 transition disabled:opacity-40">
+                    {deleteStatus === 'submitting' ? 'Processing...' : 'Queue Pipeline Destruction'}
+                  </button>
+                </form>
+              )}
+            </SectionCard>
+          </div>
         )}
-      </SectionCard>
+      </div>
     </div>
   )
 }
