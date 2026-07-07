@@ -50,7 +50,6 @@ Each role has its own protected layout with a distinct navigation set. Role-base
 | Charts | Recharts |
 | Google OAuth | @react-oauth/google |
 | QR Code | qrcode.react (for 2FA setup) |
-| 3D Graphics (planned) | React Three Fiber + Three.js + Spline |
 
 ---
 
