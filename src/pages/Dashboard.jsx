@@ -55,7 +55,7 @@ function Dashboard() {
       if (paymentsRes.status === 'fulfilled') setPayments(paymentsRes.value.data)
       if (ticketsRes.status === 'fulfilled') setTickets(ticketsRes.value.data)
       if (invoicesRes.status === 'fulfilled') setInvoices(invoicesRes.value.data)
-    ]).finally(() => setIsLoading(false))
+    }).finally(() => setIsLoading(false))
   }, [])
 
   const firstName = user?.first_name || user?.email?.split('@')[0] || 'User'
