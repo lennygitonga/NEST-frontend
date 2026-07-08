@@ -31,6 +31,17 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
+    // Prevent interceptor from handling 401s on login, registration, or token refreshing endpoints
+    const isAuthEndpoint = 
+      originalRequest.url?.includes('/api/auth/login/') || 
+      originalRequest.url?.includes('/api/auth/register/') ||
+      originalRequest.url?.includes('/api/auth/token/refresh/')
+
+    if (isAuthEndpoint) {
+      return Promise.reject(error)
+    }
+
+    // Handle token rotation for all other protected application requests
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
